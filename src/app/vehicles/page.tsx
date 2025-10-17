@@ -23,6 +23,8 @@ export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => readJson<Vehicle[]>(STORAGE_KEY, []))
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
   const [isAddVehicleExpanded, setIsAddVehicleExpanded] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
+  const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
   const assignments = readJson<Assignment[]>('bft:assignments', [])
 
   const visibleVehicles = useMemo(() => {
@@ -59,6 +61,41 @@ export default function VehiclesPage() {
     const nextAll = vehicles.filter(v => v.id !== id)
     setVehicles(nextAll)
     writeJson(STORAGE_KEY, nextAll)
+  }
+
+  function startEditVehicle(vehicle: Vehicle) {
+    setEditingVehicle(vehicle)
+    setEditVehicle({ ...vehicle })
+  }
+
+  function cancelEditVehicle() {
+    setEditingVehicle(null)
+    setEditVehicle({})
+  }
+
+  function saveEditVehicle() {
+    if (!editingVehicle) return
+    
+    const label = (editVehicle.label || '').trim()
+    if (!label) return
+    
+    const updatedVehicle: Vehicle = {
+      ...editingVehicle,
+      label,
+      plate: (editVehicle.plate || '').trim() || undefined,
+      vin: (editVehicle.vin || '').trim() || undefined,
+      make: (editVehicle.make || '').trim() || undefined,
+      model: (editVehicle.model || '').trim() || undefined,
+      year: editVehicle.year ? Number(editVehicle.year) : undefined,
+      notes: (editVehicle.notes || '').trim() || undefined,
+      initialOdometer: editVehicle.initialOdometer ? Number(editVehicle.initialOdometer) : undefined,
+    }
+    
+    const nextAll = vehicles.map(v => v.id === editingVehicle.id ? updatedVehicle : v)
+    setVehicles(nextAll)
+    writeJson(STORAGE_KEY, nextAll)
+    setEditingVehicle(null)
+    setEditVehicle({})
   }
 
   return (
@@ -254,37 +291,155 @@ export default function VehiclesPage() {
           <div className="space-y-4">
             {visibleVehicles.map((v, index) => (
               <div key={v.id} className="modern-card hover:scale-[1.02] transition-all duration-300" style={{ animationDelay: `${(index + 6) * 0.1}s` }}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                      <span className="text-xl">🚗</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1">{v.label}</h3>
-                      <div className="text-sm text-gray-400 mb-2">
-                        {[v.plate, v.vin, [v.make, v.model, v.year].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}
+                {editingVehicle?.id === v.id ? (
+                  // Edit Mode
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                       </div>
-                      {v.notes && (
-                        <p className="text-sm text-gray-500">{v.notes}</p>
-                      )}
-                      {v.initialOdometer && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          Starting odometer: {v.initialOdometer.toLocaleString()} miles
+                      <h3 className="text-lg font-semibold text-white">Edit Vehicle</h3>
+                    </div>
+                    
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Vehicle Label</label>
+                        <input
+                          className="modern-input w-full"
+                          placeholder="e.g., Truck 12, Van 5"
+                          value={editVehicle.label || ''}
+                          onChange={e => setEditVehicle(ev => ({ ...ev, label: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">License Plate</label>
+                        <input
+                          className="modern-input w-full"
+                          placeholder="ABC-123"
+                          value={editVehicle.plate || ''}
+                          onChange={e => setEditVehicle(ev => ({ ...ev, plate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">VIN Number</label>
+                        <input
+                          className="modern-input w-full"
+                          placeholder="1HGBH41JXMN109186"
+                          value={editVehicle.vin || ''}
+                          onChange={e => setEditVehicle(ev => ({ ...ev, vin: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Starting Odometer</label>
+                        <input
+                          className="modern-input w-full"
+                          placeholder="0"
+                          inputMode="numeric"
+                          value={(editVehicle.initialOdometer as any)?.toString?.() || ''}
+                          onChange={e => setEditVehicle(ev => ({ ...ev, initialOdometer: Number(e.target.value) || undefined }))}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Make</label>
+                          <input
+                            className="modern-input w-full"
+                            placeholder="Ford"
+                            value={editVehicle.make || ''}
+                            onChange={e => setEditVehicle(ev => ({ ...ev, make: e.target.value }))}
+                          />
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
+                          <input
+                            className="modern-input w-full"
+                            placeholder="Transit"
+                            value={editVehicle.model || ''}
+                            onChange={e => setEditVehicle(ev => ({ ...ev, model: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                          <input
+                            className="modern-input w-full"
+                            placeholder="2023"
+                            inputMode="numeric"
+                            value={editVehicle.year?.toString() || ''}
+                            onChange={e => setEditVehicle(ev => ({ ...ev, year: Number(e.target.value) || undefined }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                        <textarea
+                          className="modern-input w-full h-20 resize-none"
+                          placeholder="Additional notes about this vehicle..."
+                          value={editVehicle.notes || ''}
+                          onChange={e => setEditVehicle(ev => ({ ...ev, notes: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-4">
+                      <button onClick={saveEditVehicle} className="btn-primary">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Changes
+                      </button>
+                      <button onClick={cancelEditVehicle} className="btn-secondary">
+                        Cancel
+                      </button>
                     </div>
                   </div>
-                  {role === 'admin' && (
-                    <button 
-                      onClick={() => removeVehicle(v.id)} 
-                      className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  // Normal View
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                        <span className="text-xl">🚗</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white mb-1">{v.label}</h3>
+                        <div className="text-sm text-gray-400 mb-2">
+                          {[v.plate, v.vin, [v.make, v.model, v.year].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}
+                        </div>
+                        {v.notes && (
+                          <p className="text-sm text-gray-500">{v.notes}</p>
+                        )}
+                        {v.initialOdometer && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Starting odometer: {v.initialOdometer.toLocaleString()} miles
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {role === 'admin' && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => startEditVehicle(v)} 
+                          className="btn-secondary text-blue-400 hover:text-blue-300 hover:border-blue-400"
+                          title="Edit Vehicle"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => removeVehicle(v.id)} 
+                          className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
+                          title="Delete Vehicle"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             
