@@ -22,6 +22,7 @@ export default function VehiclesPage() {
   }
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => readJson<Vehicle[]>(STORAGE_KEY, []))
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
+  const [isAddVehicleExpanded, setIsAddVehicleExpanded] = useState(false)
   const assignments = readJson<Assignment[]>('bft:assignments', [])
 
   const visibleVehicles = useMemo(() => {
@@ -51,6 +52,7 @@ export default function VehiclesPage() {
     setVehicles(nextAll)
     writeJson(STORAGE_KEY, nextAll)
     setNewVehicle({ label: '', plate: '', vin: '' })
+    setIsAddVehicleExpanded(false) // Collapse form after adding
   }
 
   function removeVehicle(id: string) {
@@ -109,101 +111,131 @@ export default function VehiclesPage() {
 
         {role === 'admin' && (
           <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <button
+              onClick={() => setIsAddVehicleExpanded(!isAddVehicleExpanded)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-white">Add New Vehicle</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">
+                  {isAddVehicleExpanded ? 'Collapse' : 'Expand'}
+                </span>
+                <svg 
+                  className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                    isAddVehicleExpanded ? 'rotate-180' : ''
+                  }`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">Add New Vehicle</h2>
-            </div>
+            </button>
             
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Vehicle Label</label>
-                <input
-                  className="modern-input w-full"
-                  placeholder="e.g., Truck 12, Van 5"
-                  value={newVehicle.label || ''}
-                  onChange={e => setNewVehicle(v => ({ ...v, label: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">License Plate</label>
-                <input
-                  className="modern-input w-full"
-                  placeholder="ABC-123"
-                  value={newVehicle.plate || ''}
-                  onChange={e => setNewVehicle(v => ({ ...v, plate: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">VIN Number</label>
-                <input
-                  className="modern-input w-full"
-                  placeholder="1HGBH41JXMN109186"
-                  value={newVehicle.vin || ''}
-                  onChange={e => setNewVehicle(v => ({ ...v, vin: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Starting Odometer</label>
-                <input
-                  className="modern-input w-full"
-                  placeholder="0"
-                  inputMode="numeric"
-                  value={(newVehicle.initialOdometer as any)?.toString?.() || ''}
-                  onChange={e => setNewVehicle(v => ({ ...v, initialOdometer: Number(e.target.value) || undefined }))}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Make</label>
-                  <input
-                    className="modern-input w-full"
-                    placeholder="Ford"
-                    value={newVehicle.make || ''}
-                    onChange={e => setNewVehicle(v => ({ ...v, make: e.target.value }))}
-                  />
+            {isAddVehicleExpanded && (
+              <div className="mt-6 animate-fade-in">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Vehicle Label</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="e.g., Truck 12, Van 5"
+                      value={newVehicle.label || ''}
+                      onChange={e => setNewVehicle(v => ({ ...v, label: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">License Plate</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="ABC-123"
+                      value={newVehicle.plate || ''}
+                      onChange={e => setNewVehicle(v => ({ ...v, plate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">VIN Number</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="1HGBH41JXMN109186"
+                      value={newVehicle.vin || ''}
+                      onChange={e => setNewVehicle(v => ({ ...v, vin: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Starting Odometer</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="0"
+                      inputMode="numeric"
+                      value={(newVehicle.initialOdometer as any)?.toString?.() || ''}
+                      onChange={e => setNewVehicle(v => ({ ...v, initialOdometer: Number(e.target.value) || undefined }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Make</label>
+                      <input
+                        className="modern-input w-full"
+                        placeholder="Ford"
+                        value={newVehicle.make || ''}
+                        onChange={e => setNewVehicle(v => ({ ...v, make: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
+                      <input
+                        className="modern-input w-full"
+                        placeholder="Transit"
+                        value={newVehicle.model || ''}
+                        onChange={e => setNewVehicle(v => ({ ...v, model: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                      <input
+                        className="modern-input w-full"
+                        placeholder="2023"
+                        inputMode="numeric"
+                        value={newVehicle.year?.toString() || ''}
+                        onChange={e => setNewVehicle(v => ({ ...v, year: Number(e.target.value) || undefined }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                    <textarea
+                      className="modern-input w-full h-20 resize-none"
+                      placeholder="Additional notes about this vehicle..."
+                      value={newVehicle.notes || ''}
+                      onChange={e => setNewVehicle(v => ({ ...v, notes: e.target.value }))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Model</label>
-                  <input
-                    className="modern-input w-full"
-                    placeholder="Transit"
-                    value={newVehicle.model || ''}
-                    onChange={e => setNewVehicle(v => ({ ...v, model: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Year</label>
-                  <input
-                    className="modern-input w-full"
-                    placeholder="2023"
-                    inputMode="numeric"
-                    value={newVehicle.year?.toString() || ''}
-                    onChange={e => setNewVehicle(v => ({ ...v, year: Number(e.target.value) || undefined }))}
-                  />
+                <div className="mt-6 flex gap-3">
+                  <button onClick={addVehicle} className="btn-primary">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Vehicle
+                  </button>
+                  <button 
+                    onClick={() => setIsAddVehicleExpanded(false)} 
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
-                <textarea
-                  className="modern-input w-full h-20 resize-none"
-                  placeholder="Additional notes about this vehicle..."
-                  value={newVehicle.notes || ''}
-                  onChange={e => setNewVehicle(v => ({ ...v, notes: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="mt-6">
-              <button onClick={addVehicle} className="btn-primary">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Vehicle
-              </button>
-            </div>
+            )}
           </section>
         )}
 
