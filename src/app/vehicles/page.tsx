@@ -45,6 +45,7 @@ export default function VehiclesPage() {
       model: (newVehicle.model || '').trim() || undefined,
       year: newVehicle.year ? Number(newVehicle.year) : undefined,
       notes: (newVehicle.notes || '').trim() || undefined,
+      initialOdometer: newVehicle.initialOdometer ? Number(newVehicle.initialOdometer) : undefined,
     }
     const nextAll = [vehicle, ...vehicles]
     setVehicles(nextAll)
@@ -105,6 +106,13 @@ export default function VehiclesPage() {
               onChange={e => setNewVehicle(v => ({ ...v, year: Number(e.target.value) || undefined }))}
             />
           </div>
+          <input
+            className="px-3 py-2 rounded border sm:col-span-2"
+            placeholder="Starting odometer"
+            inputMode="numeric"
+            value={(newVehicle.initialOdometer as any)?.toString?.() || ''}
+            onChange={e => setNewVehicle(v => ({ ...v, initialOdometer: Number(e.target.value) || undefined }))}
+          />
           <textarea
             className="px-3 py-2 rounded border sm:col-span-2"
             placeholder="Notes"

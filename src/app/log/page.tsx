@@ -45,7 +45,8 @@ export default function WeeklyLogPage() {
 
     // Compute statuses and notify if warning/overdue
     const maintenance = readJson<any[]>('bft:maintenance', [])
-    const statuses = computeServiceStatuses(vehicleId, all, maintenance)
+    const vehiclesAll = readJson<any[]>('bft:vehicles', [])
+    const statuses = computeServiceStatuses(vehicleId, all, maintenance, vehiclesAll, 250)
     const alerting = statuses.filter(s => s.status !== 'ok')
     if (alerting.length > 0) {
       try {

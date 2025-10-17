@@ -1,4 +1,4 @@
-import type { MaintenanceRecord, OdometerLog, ServiceType } from '@/types/fleet'
+import type { MaintenanceRecord, OdometerLog, ServiceType, Vehicle } from '@/types/fleet'
 
 export const SERVICE_INTERVALS_MILES: Record<ServiceType, number> = {
   'Oil Change': 5000,
@@ -19,7 +19,8 @@ export type ServiceStatus = {
 export function computeLatestOdometer(
   vehicleId: string,
   odometerLogs: OdometerLog[],
-  maintenance: MaintenanceRecord[]
+  maintenance: MaintenanceRecord[],
+  vehicles: Vehicle[]
 ): number | null {
   const latestLog = odometerLogs
     .filter(l => l.vehicleId === vehicleId)
@@ -27,7 +28,8 @@ export function computeLatestOdometer(
   const latestMaintOdo = maintenance
     .filter(m => m.vehicleId === vehicleId && typeof m.odometer === 'number')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer
-  const odo = latestLog?.odometer ?? latestMaintOdo ?? null
+  const initial = vehicles.find(v => v.id === vehicleId)?.initialOdometer
+  const odo = latestLog?.odometer ?? latestMaintOdo ?? initial ?? null
   return typeof odo === 'number' ? odo : null
 }
 
@@ -35,9 +37,10 @@ export function computeServiceStatuses(
   vehicleId: string,
   odometerLogs: OdometerLog[],
   maintenance: MaintenanceRecord[],
-  warningThresholdMiles = 500
+  vehicles: Vehicle[],
+  warningThresholdMiles = 250
 ): ServiceStatus[] {
-  const currentOdo = computeLatestOdometer(vehicleId, odometerLogs, maintenance)
+  const currentOdo = computeLatestOdometer(vehicleId, odometerLogs, maintenance, vehicles)
   if (currentOdo == null) {
     return (Object.keys(SERVICE_INTERVALS_MILES) as ServiceType[]).map(s => ({
       service: s,

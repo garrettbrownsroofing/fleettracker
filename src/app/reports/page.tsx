@@ -30,7 +30,7 @@ export default function ReportsPage() {
 
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(vehicles[0]?.id || '')
 
-  const statuses = useMemo(() => computeServiceStatuses(selectedVehicleId, odologs, maintenance), [selectedVehicleId, odologs, maintenance])
+  const statuses = useMemo(() => computeServiceStatuses(selectedVehicleId, odologs, maintenance, vehicles, 250), [selectedVehicleId, odologs, maintenance, vehicles])
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId) || null
   const assignedDrivers = assignments.filter(a => a.vehicleId === selectedVehicleId)
 

@@ -7,6 +7,7 @@ export type Vehicle = {
   model?: string
   year?: number
   notes?: string
+  initialOdometer?: number
 }
 
 export type Driver = {
