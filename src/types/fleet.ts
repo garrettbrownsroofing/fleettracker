@@ -55,4 +55,25 @@ export type OdometerLog = {
   odometer: number
 }
 
+export type Receipt = {
+  id: string
+  vehicleId: string
+  driverId: string
+  date: string // ISO date
+  serviceType?: ServiceType
+  amountCents?: number
+  notes?: string
+  images: string[] // data URLs
+}
+
+export type CleanlinessLog = {
+  id: string
+  vehicleId: string
+  driverId: string
+  date: string // ISO date (Friday)
+  exteriorImages: string[] // data URLs
+  interiorImages: string[] // data URLs
+  notes?: string
+}
+
 
