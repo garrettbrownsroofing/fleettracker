@@ -46,9 +46,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     }
 
-    // Validate against Drivers by name from localStorage
-    const drivers = readJson<Array<{ id: string; name: string }>>('bft:drivers', [])
-    const match = drivers.find(d => d.name.trim().toLowerCase() === trimmed.toLowerCase())
+    // Validate against Drivers by name, normalized id, or email from localStorage
+    const drivers = readJson<Array<{ id: string; name: string; email?: string }>>('bft:drivers', [])
+    const inputLower = trimmed.toLowerCase()
+    const match = drivers.find(d => {
+      const nameLower = (d.name || '').trim().toLowerCase()
+      const normId = (d.id || normalizeIdFromName(d.name || ''))
+      const normIdLower = normId.toLowerCase()
+      const emailLower = (d.email || '').trim().toLowerCase()
+      return (
+        inputLower === nameLower ||
+        inputLower === normIdLower ||
+        (emailLower && inputLower === emailLower)
+      )
+    })
     if (!match) {
       return { ok: false, error: 'User not found. Ask admin to add driver.' }
     }
