@@ -1,7 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { SessionProvider } from '@/lib/session'
-import Header from '@/components/Header'
+import ConditionalHeader from '@/components/ConditionalHeader'
 
 export const metadata: Metadata = {
   title: "Brown's Fleet Tracker",
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen gradient-bg text-white">
         <SessionProvider>
-          <Header />
+          <ConditionalHeader />
           {children}
         </SessionProvider>
       </body>
