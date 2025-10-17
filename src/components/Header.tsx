@@ -14,9 +14,11 @@ export default function Header() {
             <>
               <a href="/drivers" className="px-3 py-1.5 rounded hover:bg-gray-100">Drivers</a>
               <a href="/assignments" className="px-3 py-1.5 rounded hover:bg-gray-100">Assignments</a>
+              <a href="/reports" className="px-3 py-1.5 rounded hover:bg-gray-100">Reports</a>
             </>
           )}
           <a href="/maintenance" className="px-3 py-1.5 rounded hover:bg-gray-100">Maintenance</a>
+          <a href="/log" className="px-3 py-1.5 rounded hover:bg-gray-100">Weekly Log</a>
           {isAuthenticated ? (
             <>
               <span className="ml-2 text-gray-600">{user?.name} ({role})</span>

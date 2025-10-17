@@ -38,4 +38,20 @@ export type MaintenanceRecord = {
   notes?: string
 }
 
+export type ServiceType =
+  | 'Oil Change'
+  | 'Tire Rotation'
+  | 'Fluid Check'
+  | 'Brake Inspection'
+  | 'Filter Replacement'
+  | 'Major Inspection'
+
+export type OdometerLog = {
+  id: string
+  vehicleId: string
+  driverId: string
+  date: string // ISO date
+  odometer: number
+}
+
 
