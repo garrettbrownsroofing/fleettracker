@@ -31,7 +31,7 @@ export default function Home() {
       title: 'Driver Management',
       description: 'Manage drivers and vehicle assignments',
       href: '/drivers',
-      icon: '👥',
+      icon: '👷',
       color: 'from-green-500 to-emerald-500'
     },
     {
