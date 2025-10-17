@@ -16,6 +16,7 @@ export type Driver = {
   phone?: string
   email?: string
   notes?: string
+  assignedVehicleId?: string // For form state when adding driver with vehicle assignment
 }
 
 export type Assignment = {
