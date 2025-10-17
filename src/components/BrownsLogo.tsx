@@ -24,42 +24,79 @@ export default function BrownsLogo({ size = 'md', className = '' }: BrownsLogoPr
         {/* White circle background */}
         <circle cx="50" cy="50" r="50" fill="white" />
         
-        {/* House outline */}
+        {/* House outline with pitched roof */}
         <path
-          d="M25 35 L50 20 L75 35 L75 65 L25 65 Z"
+          d="M20 40 L50 20 L80 40 L80 70 L20 70 Z"
           stroke="black"
-          strokeWidth="2"
+          strokeWidth="1.5"
           fill="none"
         />
         
-        {/* Chimney */}
-        <rect x="60" y="25" width="8" height="15" fill="black" />
+        {/* Chimney on left side of roof */}
+        <rect x="25" y="30" width="6" height="12" fill="black" />
         
-        {/* Hammer */}
-        <g transform="translate(20, 40)">
-          {/* Hammer head */}
-          <rect x="0" y="0" width="8" height="12" fill="#C0C0C0" />
-          <rect x="2" y="2" width="4" height="8" fill="#A0A0A0" />
-          {/* Hammer claw */}
-          <path d="M8 0 L12 4 L10 6 L6 2 Z" fill="#C0C0C0" />
+        {/* Vertical divider line */}
+        <line x1="50" y1="35" x2="50" y2="75" stroke="black" strokeWidth="1" />
+        
+        {/* Detailed Claw Hammer - Left side */}
+        <g transform="translate(15, 45)">
+          {/* Hammer head with metallic gradient effect */}
+          <defs>
+            <linearGradient id="hammerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{stopColor:"#E8E8E8", stopOpacity:1}} />
+              <stop offset="50%" style={{stopColor:"#C0C0C0", stopOpacity:1}} />
+              <stop offset="100%" style={{stopColor:"#A0A0A0", stopOpacity:1}} />
+            </linearGradient>
+          </defs>
+          
+          {/* Main hammer head */}
+          <rect x="2" y="2" width="12" height="8" fill="url(#hammerGradient)" stroke="black" strokeWidth="0.5" />
+          
+          {/* Claw part of hammer */}
+          <path d="M14 2 L18 6 L16 8 L12 4 Z" fill="url(#hammerGradient)" stroke="black" strokeWidth="0.5" />
+          <path d="M14 6 L18 10 L16 12 L12 8 Z" fill="url(#hammerGradient)" stroke="black" strokeWidth="0.5" />
+          
           {/* Hammer handle */}
-          <rect x="6" y="12" width="2" height="20" fill="#8B4513" />
+          <rect x="7" y="10" width="3" height="18" fill="#8B4513" stroke="black" strokeWidth="0.5" />
+          
+          {/* Handle grip detail */}
+          <rect x="6" y="25" width="5" height="3" fill="#654321" stroke="black" strokeWidth="0.3" />
         </g>
         
-        {/* Divider line */}
-        <line x1="35" y1="40" x2="35" y2="80" stroke="black" strokeWidth="1" />
-        
-        {/* Letter B */}
-        <g transform="translate(45, 50)">
+        {/* Bold Red Letter B - Right side with 3D effect */}
+        <g transform="translate(60, 50)">
+          <defs>
+            <linearGradient id="bGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{stopColor:"#FF4444", stopOpacity:1}} />
+              <stop offset="50%" style={{stopColor:"#DC2626", stopOpacity:1}} />
+              <stop offset="100%" style={{stopColor:"#B91C1C", stopOpacity:1}} />
+            </linearGradient>
+          </defs>
+          
+          {/* 3D effect shadow */}
+          <text
+            x="2"
+            y="2"
+            fontSize="28"
+            fontWeight="900"
+            fill="#8B0000"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="font-black"
+          >
+            B
+          </text>
+          
+          {/* Main B with gradient */}
           <text
             x="0"
             y="0"
-            fontSize="32"
-            fontWeight="bold"
-            fill="#DC2626"
+            fontSize="28"
+            fontWeight="900"
+            fill="url(#bGradient)"
             textAnchor="middle"
             dominantBaseline="middle"
-            className="font-bold"
+            className="font-black"
           >
             B
           </text>
