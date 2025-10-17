@@ -47,11 +47,8 @@ export default function DriversPage() {
   const [isAddDriverExpanded, setIsAddDriverExpanded] = useState(false)
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
   const [editDriver, setEditDriver] = useState<Partial<Driver>>({})
-  
-  const [newAssignment, setNewAssignment] = useState<Partial<Assignment>>({ startDate: new Date().toISOString().slice(0, 10) })
 
   const totalDrivers = useMemo(() => drivers.length, [drivers])
-  const totalAssignments = useMemo(() => assignments.length, [assignments])
 
   function addDriver() {
     const name = (newDriver.name || '').trim()
@@ -125,36 +122,30 @@ export default function DriversPage() {
     setEditDriver({})
   }
 
-  function addAssignment() {
-    const vehicleId = newAssignment.vehicleId?.trim()
-    const driverId = newAssignment.driverId?.trim()
-    const startDate = (newAssignment.startDate || '').trim()
-    if (!vehicleId || !driverId || !startDate) return
+
+
+  function getDriverAssignments(driverId: string) {
+    return assignments.filter(a => a.driverId === driverId)
+  }
+
+  function addDriverAssignment(driverId: string, vehicleId: string) {
     const assignment: Assignment = {
       id: generateId(),
       vehicleId,
       driverId,
-      startDate,
-      endDate: newAssignment.endDate || undefined,
-      job: newAssignment.job?.trim() || undefined,
-      notes: newAssignment.notes?.trim() || undefined,
+      startDate: new Date().toISOString().slice(0, 10),
     }
     const next = [assignment, ...assignments]
     setAssignments(next)
     writeJson(STORAGE_ASSIGNMENTS, next)
-    setNewAssignment({ startDate: new Date().toISOString().slice(0, 10) })
   }
 
-  function removeAssignment(id: string) {
-    const next = assignments.filter(a => a.id !== id)
+  function removeDriverAssignment(driverId: string, vehicleId: string) {
+    const next = assignments.filter(a => !(a.driverId === driverId && a.vehicleId === vehicleId))
     setAssignments(next)
     writeJson(STORAGE_ASSIGNMENTS, next)
   }
 
-  function nameForDriver(id: string) {
-    return drivers.find(d => d.id === id)?.name || 'Unknown driver'
-  }
-  
   function labelForVehicle(id: string) {
     return vehicles.find(v => v.id === id)?.label || 'Unknown vehicle'
   }
@@ -171,7 +162,7 @@ export default function DriversPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
@@ -184,17 +175,6 @@ export default function DriversPage() {
             </div>
           </div>
           <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-                <span className="text-2xl">👥</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">{totalAssignments}</div>
-                <div className="text-sm text-gray-400">Active Assignments</div>
-              </div>
-            </div>
-          </div>
-          <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
                 <span className="text-2xl">🚗</span>
@@ -309,90 +289,6 @@ export default function DriversPage() {
           )}
         </section>
 
-        {/* Create Assignment Form */}
-        <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-white">Create New Assignment</h2>
-          </div>
-          
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Vehicle</label>
-              <select
-                className="modern-input w-full"
-                value={newAssignment.vehicleId || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, vehicleId: e.target.value }))}
-              >
-                <option value="">Select vehicle</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Driver</label>
-              <select
-                className="modern-input w-full"
-                value={newAssignment.driverId || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, driverId: e.target.value }))}
-              >
-                <option value="">Select driver</option>
-                {drivers.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
-              <input
-                className="modern-input w-full"
-                type="date"
-                value={newAssignment.startDate || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, startDate: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">End Date (Optional)</label>
-              <input
-                className="modern-input w-full"
-                type="date"
-                value={newAssignment.endDate || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, endDate: e.target.value }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Job Description</label>
-              <input
-                className="modern-input w-full"
-                placeholder="e.g., Delivery to downtown, Maintenance run"
-                value={newAssignment.job || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, job: e.target.value }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
-              <textarea
-                className="modern-input w-full h-20 resize-none"
-                placeholder="Additional notes about this assignment..."
-                value={newAssignment.notes || ''}
-                onChange={e => setNewAssignment(v => ({ ...v, notes: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="mt-6">
-            <button onClick={addAssignment} className="btn-primary">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Create Assignment
-            </button>
-          </div>
-        </section>
 
         {/* Drivers List */}
         <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
@@ -460,6 +356,52 @@ export default function DriversPage() {
                       </div>
                     </div>
                     
+                    {/* Vehicle Assignments */}
+                    <div className="mt-6">
+                      <h4 className="text-lg font-semibold text-white mb-4">Vehicle Assignments</h4>
+                      <div className="space-y-3">
+                        {vehicles.map(vehicle => {
+                          const isAssigned = getDriverAssignments(editingDriver.id).some(a => a.vehicleId === vehicle.id)
+                          return (
+                            <div key={vehicle.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                                  <span className="text-sm">🚗</span>
+                                </div>
+                                <div>
+                                  <div className="text-white font-medium">{vehicle.label}</div>
+                                  <div className="text-sm text-gray-400">
+                                    {[vehicle.plate, vehicle.make, vehicle.model].filter(Boolean).join(' · ')}
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (isAssigned) {
+                                    removeDriverAssignment(editingDriver.id, vehicle.id)
+                                  } else {
+                                    addDriverAssignment(editingDriver.id, vehicle.id)
+                                  }
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                  isAssigned
+                                    ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-600/30'
+                                    : 'bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30'
+                                }`}
+                              >
+                                {isAssigned ? 'Remove' : 'Assign'}
+                              </button>
+                            </div>
+                          )
+                        })}
+                        {vehicles.length === 0 && (
+                          <div className="text-center py-4 text-gray-400">
+                            No vehicles available. Add vehicles first to assign them to drivers.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
                     <div className="flex gap-3 pt-4">
                       <button onClick={saveEditDriver} className="btn-primary">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -485,7 +427,23 @@ export default function DriversPage() {
                           {[d.phone, d.email].filter(Boolean).join(' · ')}
                         </div>
                         {d.notes && (
-                          <p className="text-sm text-gray-500">{d.notes}</p>
+                          <p className="text-sm text-gray-500 mb-2">{d.notes}</p>
+                        )}
+                        {/* Show assigned vehicles */}
+                        {getDriverAssignments(d.id).length > 0 && (
+                          <div className="mt-2">
+                            <div className="text-xs text-gray-500 mb-1">Assigned Vehicles:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {getDriverAssignments(d.id).map(assignment => (
+                                <span
+                                  key={assignment.id}
+                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-600/20 text-blue-400 border border-blue-600/30"
+                                >
+                                  🚗 {labelForVehicle(assignment.vehicleId)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -526,62 +484,6 @@ export default function DriversPage() {
           </div>
         </section>
 
-        {/* Assignments List */}
-        <section className="modern-card animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-                <span className="text-xl">👥</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">All Assignments</h2>
-            </div>
-            <div className="text-sm text-gray-400">{totalAssignments} assignments</div>
-          </div>
-          
-          <div className="space-y-4">
-            {assignments.map((a, index) => (
-              <div key={a.id} className="modern-card hover:scale-[1.02] transition-all duration-300" style={{ animationDelay: `${(index + 8) * 0.1}s` }}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
-                      <span className="text-xl">👥</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1">
-                        {labelForVehicle(a.vehicleId)} → {nameForDriver(a.driverId)}
-                      </h3>
-                      <div className="text-sm text-gray-400 mb-2">
-                        {[a.startDate, a.endDate ? `to ${a.endDate}` : undefined, a.job].filter(Boolean).join(' · ')}
-                      </div>
-                      {a.notes && (
-                        <p className="text-sm text-gray-500">{a.notes}</p>
-                      )}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => removeAssignment(a.id)} 
-                    className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
-                    title="Delete Assignment"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-            
-            {assignments.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">👥</span>
-                </div>
-                <h3 className="text-lg font-medium text-white mb-2">No assignments yet</h3>
-                <p className="text-gray-400">Create your first assignment to get started.</p>
-              </div>
-            )}
-          </div>
-        </section>
       </div>
     </main>
   )
