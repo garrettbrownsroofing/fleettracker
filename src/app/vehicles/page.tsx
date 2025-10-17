@@ -114,21 +114,7 @@ export default function VehiclesPage() {
           <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                  {/* Black van body */}
-                  <rect x="3" y="6" width="18" height="10" rx="1" fill="currentColor" />
-                  {/* Windows */}
-                  <rect x="4" y="7" width="3" height="6" fill="white" />
-                  <rect x="8" y="7" width="3" height="6" fill="white" />
-                  <rect x="12" y="7" width="3" height="6" fill="white" />
-                  <rect x="16" y="7" width="3" height="6" fill="white" />
-                  {/* Wheels */}
-                  <circle cx="6" cy="18" r="2" fill="currentColor" />
-                  <circle cx="18" cy="18" r="2" fill="currentColor" />
-                  {/* Wheel centers */}
-                  <circle cx="6" cy="18" r="1" fill="white" />
-                  <circle cx="18" cy="18" r="1" fill="white" />
-                </svg>
+                <span className="text-2xl">🛻</span>
               </div>
               <div>
                 <div className="text-2xl font-bold text-white">{totalCount}</div>
@@ -295,17 +281,7 @@ export default function VehiclesPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="3" y="6" width="18" height="10" rx="1" fill="currentColor" />
-                  <rect x="4" y="7" width="3" height="6" fill="white" />
-                  <rect x="8" y="7" width="3" height="6" fill="white" />
-                  <rect x="12" y="7" width="3" height="6" fill="white" />
-                  <rect x="16" y="7" width="3" height="6" fill="white" />
-                  <circle cx="6" cy="18" r="2" fill="currentColor" />
-                  <circle cx="18" cy="18" r="2" fill="currentColor" />
-                  <circle cx="6" cy="18" r="1" fill="white" />
-                  <circle cx="18" cy="18" r="1" fill="white" />
-                </svg>
+                <span className="text-xl">🛻</span>
               </div>
               <h2 className="text-xl font-bold text-white">Fleet Vehicles</h2>
             </div>
@@ -423,17 +399,7 @@ export default function VehiclesPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                        <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-                          <rect x="3" y="6" width="18" height="10" rx="1" fill="currentColor" />
-                          <rect x="4" y="7" width="3" height="6" fill="white" />
-                          <rect x="8" y="7" width="3" height="6" fill="white" />
-                          <rect x="12" y="7" width="3" height="6" fill="white" />
-                          <rect x="16" y="7" width="3" height="6" fill="white" />
-                          <circle cx="6" cy="18" r="2" fill="currentColor" />
-                          <circle cx="18" cy="18" r="2" fill="currentColor" />
-                          <circle cx="6" cy="18" r="1" fill="white" />
-                          <circle cx="18" cy="18" r="1" fill="white" />
-                        </svg>
+                        <span className="text-xl">🛻</span>
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-white mb-1">{v.label}</h3>
@@ -480,17 +446,7 @@ export default function VehiclesPage() {
             {visibleVehicles.length === 0 && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="3" y="6" width="18" height="10" rx="1" fill="currentColor" />
-                    <rect x="4" y="7" width="3" height="6" fill="white" />
-                    <rect x="8" y="7" width="3" height="6" fill="white" />
-                    <rect x="12" y="7" width="3" height="6" fill="white" />
-                    <rect x="16" y="7" width="3" height="6" fill="white" />
-                    <circle cx="6" cy="18" r="2" fill="currentColor" />
-                    <circle cx="18" cy="18" r="2" fill="currentColor" />
-                    <circle cx="6" cy="18" r="1" fill="white" />
-                    <circle cx="18" cy="18" r="1" fill="white" />
-                  </svg>
+                  <span className="text-2xl">🛻</span>
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No vehicles yet</h3>
                 <p className="text-gray-400">Add your first vehicle to get started with fleet management.</p>
