@@ -177,7 +177,7 @@ export default function DriversPage() {
           <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                <span className="text-2xl">🚗</span>
+                <span className="text-2xl">🛻</span>
               </div>
               <div>
                 <div className="text-2xl font-bold text-white">{vehicles.length}</div>
@@ -366,7 +366,7 @@ export default function DriversPage() {
                             <div key={vehicle.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                                  <span className="text-sm">🚗</span>
+                                  <span className="text-sm">🛻</span>
                                 </div>
                                 <div>
                                   <div className="text-white font-medium">{vehicle.label}</div>
@@ -439,7 +439,7 @@ export default function DriversPage() {
                                   key={assignment.id}
                                   className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-600/20 text-blue-400 border border-blue-600/30"
                                 >
-                                  🚗 {labelForVehicle(assignment.vehicleId)}
+                                  🛻 {labelForVehicle(assignment.vehicleId)}
                                 </span>
                               ))}
                             </div>

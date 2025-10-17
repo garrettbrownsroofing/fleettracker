@@ -11,7 +11,7 @@ export default function Header() {
   const navItems = [
     { href: '/vehicles', label: 'Vehicles' },
     ...(role === 'admin' ? [
-      { href: '/drivers', label: 'Drivers & Assignments' },
+      { href: '/drivers', label: 'Drivers' },
       { href: '/reports', label: 'Reports' }
     ] : []),
     { href: '/maintenance', label: 'Maintenance' },

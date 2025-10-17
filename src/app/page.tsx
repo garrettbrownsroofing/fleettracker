@@ -24,13 +24,13 @@ export default function Home() {
       title: 'Vehicle Management',
       description: 'Track vehicles, VINs, and license plates',
       href: '/vehicles',
-      icon: '🚗',
+      icon: '🛻',
       color: 'from-blue-500 to-cyan-500'
     },
     {
-      title: 'Driver Assignments',
-      description: 'Assign drivers and manage job schedules',
-      href: '/assignments',
+      title: 'Driver Management',
+      description: 'Manage drivers and vehicle assignments',
+      href: '/drivers',
       icon: '👥',
       color: 'from-green-500 to-emerald-500'
     },
