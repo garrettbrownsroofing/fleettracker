@@ -7,6 +7,8 @@ import { readJson } from '@/lib/storage'
 import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle } from '@/types/fleet'
 import { computeServiceStatuses, type ServiceStatus } from '@/lib/service'
 
+// Reports page with vehicle overview and maintenance status
+
 type VehicleStatus = {
   vehicle: Vehicle
   overallStatus: 'good' | 'warning' | 'overdue'
