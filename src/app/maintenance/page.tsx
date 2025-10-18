@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { MaintenanceRecord, Vehicle, Assignment } from '@/types/fleet'
-import { readJson, writeJson } from '@/lib/storage'
+import { readJson, writeJson, apiGet, apiPost, apiDelete } from '@/lib/storage'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 
@@ -20,11 +20,12 @@ export default function MaintenancePage() {
     router.replace('/login')
     return null
   }
-  const vehicles = readJson<Vehicle[]>(STORAGE_VEHICLES, [])
-  const assignments = readJson<Assignment[]>('bft:assignments', [])
-  const [records, setRecords] = useState<MaintenanceRecord[]>(() => readJson<MaintenanceRecord[]>(STORAGE_MAINT, []))
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [records, setRecords] = useState<MaintenanceRecord[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
   const [isAddRecordExpanded, setIsAddRecordExpanded] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const [form, setForm] = useState<Partial<MaintenanceRecord>>({ date: new Date().toISOString().slice(0,10) })
 
@@ -62,7 +63,33 @@ export default function MaintenancePage() {
       .slice(0, 5)
   }, [visibleRecords])
 
-  function addRecord() {
+  // Load data from API on component mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        const [vehiclesData, assignmentsData, recordsData] = await Promise.all([
+          apiGet<Vehicle[]>('/api/vehicles'),
+          apiGet<Assignment[]>('/api/assignments'),
+          apiGet<MaintenanceRecord[]>('/api/maintenance')
+        ])
+        setVehicles(vehiclesData)
+        setAssignments(assignmentsData)
+        setRecords(recordsData)
+      } catch (error) {
+        console.error('Failed to load data:', error)
+        // Fallback to localStorage if API fails
+        setVehicles(readJson<Vehicle[]>(STORAGE_VEHICLES, []))
+        setAssignments(readJson<Assignment[]>('bft:assignments', []))
+        setRecords(readJson<MaintenanceRecord[]>(STORAGE_MAINT, []))
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
+  async function addRecord() {
     const vehicleId = form.vehicleId?.trim()
     const date = (form.date || '').trim()
     if (!vehicleId || !date) return
@@ -76,21 +103,59 @@ export default function MaintenancePage() {
       vendor: form.vendor?.trim() || undefined,
       notes: form.notes?.trim() || undefined,
     }
-    const next = [rec, ...records]
-    setRecords(next)
-    writeJson(STORAGE_MAINT, next)
-    setForm({ date: new Date().toISOString().slice(0,10) })
-    setIsAddRecordExpanded(false)
+    
+    try {
+      const savedRecord = await apiPost<MaintenanceRecord>('/api/maintenance', rec)
+      setRecords(prev => [savedRecord, ...prev])
+      writeJson(STORAGE_MAINT, [savedRecord, ...records]) // Keep localStorage in sync
+      setForm({ date: new Date().toISOString().slice(0,10) })
+      setIsAddRecordExpanded(false)
+    } catch (error) {
+      console.error('Failed to add maintenance record:', error)
+      // Fallback to localStorage
+      const next = [rec, ...records]
+      setRecords(next)
+      writeJson(STORAGE_MAINT, next)
+      setForm({ date: new Date().toISOString().slice(0,10) })
+      setIsAddRecordExpanded(false)
+    }
   }
 
-  function removeRecord(id: string) {
-    const next = records.filter(r => r.id !== id)
-    setRecords(next)
-    writeJson(STORAGE_MAINT, next)
+  async function removeRecord(id: string) {
+    try {
+      await apiDelete('/api/maintenance', id)
+      const next = records.filter(r => r.id !== id)
+      setRecords(next)
+      writeJson(STORAGE_MAINT, next) // Keep localStorage in sync
+    } catch (error) {
+      console.error('Failed to remove maintenance record:', error)
+      // Fallback to localStorage
+      const next = records.filter(r => r.id !== id)
+      setRecords(next)
+      writeJson(STORAGE_MAINT, next)
+    }
   }
 
   function getVehicleLabel(vehicleId: string) {
     return vehicles.find(v => v.id === vehicleId)?.label || 'Unknown vehicle'
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">🔧</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading maintenance data...</h3>
+              <p className="text-gray-400">Syncing data from server</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (

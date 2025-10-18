@@ -1,22 +1,109 @@
 const isBrowser = typeof window !== 'undefined'
 
+// API endpoints mapping
+const API_ENDPOINTS = {
+  'bft:vehicles': '/api/vehicles',
+  'bft:drivers': '/api/drivers',
+  'bft:assignments': '/api/assignments',
+  'bft:maintenance': '/api/maintenance',
+} as const
+
+// Fallback to localStorage for keys not in API_ENDPOINTS
 export function readJson<T>(key: string, fallback: T): T {
   if (!isBrowser) return fallback
-  try {
-    const raw = window.localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
+  
+  // Check if this key has an API endpoint
+  const apiEndpoint = API_ENDPOINTS[key as keyof typeof API_ENDPOINTS]
+  
+  if (apiEndpoint) {
+    // For API endpoints, we'll use a different approach with React state
+    // This function will be used for initial fallback, but components should use API calls
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (!raw) return fallback
+      return JSON.parse(raw) as T
+    } catch {
+      return fallback
+    }
+  } else {
+    // For non-API keys, use localStorage as before
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (!raw) return fallback
+      return JSON.parse(raw) as T
+    } catch {
+      return fallback
+    }
   }
 }
 
 export function writeJson<T>(key: string, value: T): void {
   if (!isBrowser) return
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    // ignore
+  
+  // Check if this key has an API endpoint
+  const apiEndpoint = API_ENDPOINTS[key as keyof typeof API_ENDPOINTS]
+  
+  if (apiEndpoint) {
+    // For API endpoints, we'll use a different approach with React state
+    // This function will be used for initial fallback, but components should use API calls
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value))
+    } catch {
+      // ignore
+    }
+  } else {
+    // For non-API keys, use localStorage as before
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value))
+    } catch {
+      // ignore
+    }
+  }
+}
+
+// API service functions
+export async function apiGet<T>(endpoint: string): Promise<T> {
+  const response = await fetch(endpoint)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to post to ${endpoint}: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function apiPut<T>(endpoint: string, data: T): Promise<T> {
+  const response = await fetch(endpoint, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to put to ${endpoint}: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function apiDelete(endpoint: string, id: string): Promise<void> {
+  const response = await fetch(`${endpoint}?id=${id}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to delete from ${endpoint}: ${response.statusText}`)
   }
 }
 

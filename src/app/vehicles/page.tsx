@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { Vehicle } from '@/types/fleet'
-import { readJson, writeJson } from '@/lib/storage'
+import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/storage'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 import type { Assignment } from '@/types/fleet'
@@ -20,12 +20,13 @@ export default function VehiclesPage() {
     router.replace('/login')
     return null
   }
-  const [vehicles, setVehicles] = useState<Vehicle[]>(() => readJson<Vehicle[]>(STORAGE_KEY, []))
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
   const [isAddVehicleExpanded, setIsAddVehicleExpanded] = useState(false)
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
   const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
-  const assignments = readJson<Assignment[]>('bft:assignments', [])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
 
   const visibleVehicles = useMemo(() => {
     if (role === 'admin') return vehicles
@@ -36,7 +37,30 @@ export default function VehiclesPage() {
 
   const totalCount = useMemo(() => visibleVehicles.length, [visibleVehicles])
 
-  function addVehicle() {
+  // Load data from API on component mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        const [vehiclesData, assignmentsData] = await Promise.all([
+          apiGet<Vehicle[]>('/api/vehicles'),
+          apiGet<Assignment[]>('/api/assignments')
+        ])
+        setVehicles(vehiclesData)
+        setAssignments(assignmentsData)
+      } catch (error) {
+        console.error('Failed to load data:', error)
+        // Fallback to localStorage if API fails
+        setVehicles(readJson<Vehicle[]>(STORAGE_KEY, []))
+        setAssignments(readJson<Assignment[]>('bft:assignments', []))
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
+  async function addVehicle() {
     const label = (newVehicle.label || '').trim()
     if (!label) return
     const vehicle: Vehicle = {
@@ -50,17 +74,37 @@ export default function VehiclesPage() {
       notes: (newVehicle.notes || '').trim() || undefined,
       initialOdometer: newVehicle.initialOdometer ? Number(newVehicle.initialOdometer) : undefined,
     }
-    const nextAll = [vehicle, ...vehicles]
-    setVehicles(nextAll)
-    writeJson(STORAGE_KEY, nextAll)
-    setNewVehicle({ label: '', plate: '', vin: '' })
-    setIsAddVehicleExpanded(false) // Collapse form after adding
+    
+    try {
+      const savedVehicle = await apiPost<Vehicle>('/api/vehicles', vehicle)
+      setVehicles(prev => [savedVehicle, ...prev])
+      writeJson(STORAGE_KEY, [savedVehicle, ...vehicles]) // Keep localStorage in sync
+      setNewVehicle({ label: '', plate: '', vin: '' })
+      setIsAddVehicleExpanded(false) // Collapse form after adding
+    } catch (error) {
+      console.error('Failed to add vehicle:', error)
+      // Fallback to localStorage
+      const nextAll = [vehicle, ...vehicles]
+      setVehicles(nextAll)
+      writeJson(STORAGE_KEY, nextAll)
+      setNewVehicle({ label: '', plate: '', vin: '' })
+      setIsAddVehicleExpanded(false)
+    }
   }
 
-  function removeVehicle(id: string) {
-    const nextAll = vehicles.filter(v => v.id !== id)
-    setVehicles(nextAll)
-    writeJson(STORAGE_KEY, nextAll)
+  async function removeVehicle(id: string) {
+    try {
+      await apiDelete('/api/vehicles', id)
+      const nextAll = vehicles.filter(v => v.id !== id)
+      setVehicles(nextAll)
+      writeJson(STORAGE_KEY, nextAll) // Keep localStorage in sync
+    } catch (error) {
+      console.error('Failed to remove vehicle:', error)
+      // Fallback to localStorage
+      const nextAll = vehicles.filter(v => v.id !== id)
+      setVehicles(nextAll)
+      writeJson(STORAGE_KEY, nextAll)
+    }
   }
 
   function startEditVehicle(vehicle: Vehicle) {
@@ -73,7 +117,7 @@ export default function VehiclesPage() {
     setEditVehicle({})
   }
 
-  function saveEditVehicle() {
+  async function saveEditVehicle() {
     if (!editingVehicle) return
     
     const label = (editVehicle.label || '').trim()
@@ -91,11 +135,40 @@ export default function VehiclesPage() {
       initialOdometer: editVehicle.initialOdometer ? Number(editVehicle.initialOdometer) : undefined,
     }
     
-    const nextAll = vehicles.map(v => v.id === editingVehicle.id ? updatedVehicle : v)
-    setVehicles(nextAll)
-    writeJson(STORAGE_KEY, nextAll)
-    setEditingVehicle(null)
-    setEditVehicle({})
+    try {
+      const savedVehicle = await apiPut<Vehicle>('/api/vehicles', updatedVehicle)
+      const nextAll = vehicles.map(v => v.id === editingVehicle.id ? savedVehicle : v)
+      setVehicles(nextAll)
+      writeJson(STORAGE_KEY, nextAll) // Keep localStorage in sync
+      setEditingVehicle(null)
+      setEditVehicle({})
+    } catch (error) {
+      console.error('Failed to update vehicle:', error)
+      // Fallback to localStorage
+      const nextAll = vehicles.map(v => v.id === editingVehicle.id ? updatedVehicle : v)
+      setVehicles(nextAll)
+      writeJson(STORAGE_KEY, nextAll)
+      setEditingVehicle(null)
+      setEditVehicle({})
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">🛻</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading vehicles...</h3>
+              <p className="text-gray-400">Syncing data from server</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
