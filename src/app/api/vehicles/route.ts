@@ -1,47 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
-import path from 'path'
 import type { Vehicle } from '@/types/fleet'
-
-const DATA_DIR = path.join(process.cwd(), 'data')
-const VEHICLES_FILE = path.join(DATA_DIR, 'vehicles.json')
-
-// Ensure data directory exists
-async function ensureDataDir() {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true })
-  } catch (error) {
-    console.error('Error creating data directory:', error)
-  }
-}
-
-// Read vehicles from file
-async function readVehicles(): Promise<Vehicle[]> {
-  try {
-    await ensureDataDir()
-    const data = await fs.readFile(VEHICLES_FILE, 'utf8')
-    return JSON.parse(data)
-  } catch (error) {
-    return []
-  }
-}
-
-// Write vehicles to file
-async function writeVehicles(vehicles: Vehicle[]): Promise<void> {
-  try {
-    await ensureDataDir()
-    await fs.writeFile(VEHICLES_FILE, JSON.stringify(vehicles, null, 2))
-  } catch (error) {
-    console.error('Error writing vehicles:', error)
-    throw error
-  }
-}
+import { vehicleService } from '@/lib/db-service'
 
 export async function GET() {
   try {
-    const vehicles = await readVehicles()
+    const vehicles = await vehicleService.getAll()
     return NextResponse.json(vehicles)
   } catch (error) {
+    console.error('Error fetching vehicles:', error)
     return NextResponse.json({ error: 'Failed to read vehicles' }, { status: 500 })
   }
 }
@@ -49,14 +15,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const vehicle: Vehicle = await request.json()
-    const vehicles = await readVehicles()
-    
-    // Add new vehicle
-    const newVehicles = [vehicle, ...vehicles]
-    await writeVehicles(newVehicles)
-    
-    return NextResponse.json(vehicle)
+    const createdVehicle = await vehicleService.create(vehicle)
+    return NextResponse.json(createdVehicle)
   } catch (error) {
+    console.error('Error creating vehicle:', error)
     return NextResponse.json({ error: 'Failed to create vehicle' }, { status: 500 })
   }
 }
@@ -64,14 +26,10 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const vehicle: Vehicle = await request.json()
-    const vehicles = await readVehicles()
-    
-    // Update existing vehicle
-    const updatedVehicles = vehicles.map(v => v.id === vehicle.id ? vehicle : v)
-    await writeVehicles(updatedVehicles)
-    
-    return NextResponse.json(vehicle)
+    const updatedVehicle = await vehicleService.update(vehicle.id, vehicle)
+    return NextResponse.json(updatedVehicle)
   } catch (error) {
+    console.error('Error updating vehicle:', error)
     return NextResponse.json({ error: 'Failed to update vehicle' }, { status: 500 })
   }
 }
@@ -85,12 +43,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Vehicle ID is required' }, { status: 400 })
     }
     
-    const vehicles = await readVehicles()
-    const filteredVehicles = vehicles.filter(v => v.id !== id)
-    await writeVehicles(filteredVehicles)
-    
+    await vehicleService.delete(id)
     return NextResponse.json({ success: true })
   } catch (error) {
+    console.error('Error deleting vehicle:', error)
     return NextResponse.json({ error: 'Failed to delete vehicle' }, { status: 500 })
   }
 }
