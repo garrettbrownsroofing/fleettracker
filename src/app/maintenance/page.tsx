@@ -23,6 +23,8 @@ export default function MaintenancePage() {
   const vehicles = readJson<Vehicle[]>(STORAGE_VEHICLES, [])
   const assignments = readJson<Assignment[]>('bft:assignments', [])
   const [records, setRecords] = useState<MaintenanceRecord[]>(() => readJson<MaintenanceRecord[]>(STORAGE_MAINT, []))
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
+  const [isAddRecordExpanded, setIsAddRecordExpanded] = useState(false)
 
   const [form, setForm] = useState<Partial<MaintenanceRecord>>({ date: new Date().toISOString().slice(0,10) })
 
@@ -33,6 +35,32 @@ export default function MaintenancePage() {
   }, [role, user, assignments, vehicles])
 
   const visibleRecords = useMemo(() => records.filter(r => visibleVehicleIds.has(r.vehicleId)), [records, visibleVehicleIds])
+
+  const filteredRecords = useMemo(() => {
+    if (!selectedVehicleId) return visibleRecords
+    return visibleRecords.filter(r => r.vehicleId === selectedVehicleId)
+  }, [visibleRecords, selectedVehicleId])
+
+  const recordsByVehicle = useMemo(() => {
+    const grouped: { [vehicleId: string]: MaintenanceRecord[] } = {}
+    visibleRecords.forEach(record => {
+      if (!grouped[record.vehicleId]) {
+        grouped[record.vehicleId] = []
+      }
+      grouped[record.vehicleId].push(record)
+    })
+    return grouped
+  }, [visibleRecords])
+
+  const totalCost = useMemo(() => {
+    return visibleRecords.reduce((sum, record) => sum + (record.costCents || 0), 0)
+  }, [visibleRecords])
+
+  const recentRecords = useMemo(() => {
+    return visibleRecords
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5)
+  }, [visibleRecords])
 
   function addRecord() {
     const vehicleId = form.vehicleId?.trim()
@@ -51,7 +79,8 @@ export default function MaintenancePage() {
     const next = [rec, ...records]
     setRecords(next)
     writeJson(STORAGE_MAINT, next)
-    setForm({ date })
+    setForm({ date: new Date().toISOString().slice(0,10) })
+    setIsAddRecordExpanded(false)
   }
 
   function removeRecord(id: string) {
@@ -60,95 +89,304 @@ export default function MaintenancePage() {
     writeJson(STORAGE_MAINT, next)
   }
 
+  function getVehicleLabel(vehicleId: string) {
+    return vehicles.find(v => v.id === vehicleId)?.label || 'Unknown vehicle'
+  }
+
   return (
-    <main className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Maintenance</h1>
+    <main className="min-h-screen gradient-bg">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8 animate-fade-in-up">
+          <h1 className="text-4xl font-bold text-white mb-2">Maintenance Records</h1>
+          <p className="text-gray-400 text-lg">
+            Track and manage vehicle maintenance with detailed records and cost tracking.
+          </p>
+        </div>
 
-      {role === 'admin' && (
-      <section className="mb-6 p-4 rounded-lg border bg-white">
-        <h2 className="font-medium mb-3">Add record</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <select
-            className="px-3 py-2 rounded border"
-            value={form.vehicleId || ''}
-            onChange={e => setForm(v => ({ ...v, vehicleId: e.target.value }))}
-          >
-            <option value="">Select vehicle</option>
-            {vehicles.map(v => (
-              <option key={v.id} value={v.id}>{v.label}</option>
-            ))}
-          </select>
-          <input
-            className="px-3 py-2 rounded border"
-            type="date"
-            value={form.date || ''}
-            onChange={e => setForm(v => ({ ...v, date: e.target.value }))}
-          />
-          <input
-            className="px-3 py-2 rounded border"
-            placeholder="Odometer"
-            inputMode="numeric"
-            value={form.odometer?.toString() || ''}
-            onChange={e => setForm(v => ({ ...v, odometer: Number(e.target.value) || undefined }))}
-          />
-          <input
-            className="px-3 py-2 rounded border"
-            placeholder="Type (Oil Change, Tires, etc.)"
-            value={form.type || ''}
-            onChange={e => setForm(v => ({ ...v, type: e.target.value }))}
-          />
-          <input
-            className="px-3 py-2 rounded border"
-            placeholder="Cost (USD)"
-            inputMode="numeric"
-            value={form.costCents ? (form.costCents / 100).toString() : ''}
-            onChange={e => setForm(v => ({ ...v, costCents: Math.round((Number(e.target.value) || 0) * 100) }))}
-          />
-          <input
-            className="px-3 py-2 rounded border"
-            placeholder="Vendor"
-            value={form.vendor || ''}
-            onChange={e => setForm(v => ({ ...v, vendor: e.target.value }))}
-          />
-          <textarea
-            className="px-3 py-2 rounded border sm:col-span-2"
-            placeholder="Notes"
-            value={form.notes || ''}
-            onChange={e => setForm(v => ({ ...v, notes: e.target.value }))}
-          />
-        </div>
-        <div className="mt-3">
-          <button onClick={addRecord} className="px-4 py-2 rounded bg-gray-900 text-white hover:bg-black">Add</button>
-        </div>
-      </section>
-      )}
-
-      <section className="p-4 rounded-lg border bg-white">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium">All records</h2>
-          <div className="text-sm text-gray-600">{visibleRecords.length} total</div>
-        </div>
-        <ul className="mt-3 divide-y">
-          {visibleRecords.map(r => (
-            <li key={r.id} className="py-3">
-              <div className="font-medium">{vehicles.find(v => v.id === r.vehicleId)?.label || 'Unknown vehicle'}</div>
-              <div className="text-sm text-gray-600">{r.date} · {r.type || 'Maintenance'}</div>
-              <div className="text-sm text-gray-600">
-                {[r.vendor, r.odometer ? `${r.odometer} mi` : undefined, r.costCents ? `$${(r.costCents / 100).toFixed(2)}` : undefined].filter(Boolean).join(' · ')}
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
+                <span className="text-2xl">🔧</span>
               </div>
-              {r.notes ? <div className="text-sm text-gray-600 mt-1">{r.notes}</div> : null}
-              {role === 'admin' && (
-                <div className="mt-2">
-                  <button onClick={() => removeRecord(r.id)} className="px-3 py-1.5 rounded border hover:bg-gray-50">Remove</button>
+              <div>
+                <div className="text-2xl font-bold text-white">{visibleRecords.length}</div>
+                <div className="text-sm text-gray-400">Total Records</div>
+              </div>
+            </div>
+          </div>
+          <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                <span className="text-2xl">💰</span>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">${(totalCost / 100).toFixed(0)}</div>
+                <div className="text-sm text-gray-400">Total Spent</div>
+              </div>
+            </div>
+          </div>
+          <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                <span className="text-2xl">🛻</span>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">{Object.keys(recordsByVehicle).length}</div>
+                <div className="text-sm text-gray-400">Vehicles Serviced</div>
+              </div>
+            </div>
+          </div>
+          <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <span className="text-2xl">📅</span>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">{recentRecords.length}</div>
+                <div className="text-sm text-gray-400">Recent Records</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Add Record Form - Collapsible */}
+        {role === 'admin' && (
+          <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+            <button
+              onClick={() => setIsAddRecordExpanded(!isAddRecordExpanded)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
                 </div>
-              )}
-            </li>
-          ))}
-          {visibleRecords.length === 0 && (
-            <li className="py-6 text-center text-gray-500">No maintenance records yet</li>
-          )}
-        </ul>
-      </section>
+                <h2 className="text-xl font-bold text-white">Add Maintenance Record</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">
+                  {isAddRecordExpanded ? 'Collapse' : 'Expand'}
+                </span>
+                <svg 
+                  className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                    isAddRecordExpanded ? 'rotate-180' : ''
+                  }`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            
+            {isAddRecordExpanded && (
+              <div className="mt-6 animate-fade-in">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Vehicle</label>
+                    <select
+                      className="modern-input w-full"
+                      value={form.vehicleId || ''}
+                      onChange={e => setForm(v => ({ ...v, vehicleId: e.target.value }))}
+                    >
+                      <option value="">Select vehicle</option>
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Date</label>
+                    <input
+                      className="modern-input w-full"
+                      type="date"
+                      value={form.date || ''}
+                      onChange={e => setForm(v => ({ ...v, date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Odometer Reading</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="12345"
+                      inputMode="numeric"
+                      value={form.odometer?.toString() || ''}
+                      onChange={e => setForm(v => ({ ...v, odometer: Number(e.target.value) || undefined }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Service Type</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="Oil Change, Tire Rotation, etc."
+                      value={form.type || ''}
+                      onChange={e => setForm(v => ({ ...v, type: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Cost (USD)</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="150.00"
+                      inputMode="numeric"
+                      value={form.costCents ? (form.costCents / 100).toString() : ''}
+                      onChange={e => setForm(v => ({ ...v, costCents: Math.round((Number(e.target.value) || 0) * 100) }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Vendor/Shop</label>
+                    <input
+                      className="modern-input w-full"
+                      placeholder="AutoZone, Jiffy Lube, etc."
+                      value={form.vendor || ''}
+                      onChange={e => setForm(v => ({ ...v, vendor: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Notes</label>
+                    <textarea
+                      className="modern-input w-full h-20 resize-none"
+                      placeholder="Additional details about the maintenance performed..."
+                      value={form.notes || ''}
+                      onChange={e => setForm(v => ({ ...v, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-3">
+                  <button onClick={addRecord} className="btn-primary">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Record
+                  </button>
+                  <button 
+                    onClick={() => setIsAddRecordExpanded(false)} 
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Vehicle Filter */}
+        <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                <span className="text-xl">🔍</span>
+              </div>
+              <h2 className="text-xl font-bold text-white">Filter by Vehicle</h2>
+            </div>
+          </div>
+          
+          <div className="flex gap-4 items-center">
+            <select
+              className="modern-input flex-1 max-w-md"
+              value={selectedVehicleId}
+              onChange={e => setSelectedVehicleId(e.target.value)}
+            >
+              <option value="">All Vehicles ({visibleRecords.length} records)</option>
+              {Object.entries(recordsByVehicle).map(([vehicleId, vehicleRecords]) => (
+                <option key={vehicleId} value={vehicleId}>
+                  {getVehicleLabel(vehicleId)} ({vehicleRecords.length} records)
+                </option>
+              ))}
+            </select>
+            {selectedVehicleId && (
+              <button
+                onClick={() => setSelectedVehicleId('')}
+                className="btn-secondary"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Maintenance Records */}
+        <section className="modern-card animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
+                <span className="text-xl">🔧</span>
+              </div>
+              <h2 className="text-xl font-bold text-white">
+                {selectedVehicleId ? `Maintenance for ${getVehicleLabel(selectedVehicleId)}` : 'All Maintenance Records'}
+              </h2>
+            </div>
+            <div className="text-sm text-gray-400">{filteredRecords.length} records</div>
+          </div>
+          
+          <div className="space-y-4">
+            {filteredRecords.map((record, index) => (
+              <div key={record.id} className="modern-card hover:scale-[1.02] transition-all duration-300" style={{ animationDelay: `${(index + 8) * 0.1}s` }}>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center">
+                      <span className="text-xl">🔧</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-white">{getVehicleLabel(record.vehicleId)}</h3>
+                        <span className="px-2 py-1 rounded-full text-xs bg-orange-600/20 text-orange-400 border border-orange-600/30">
+                          {record.type || 'Maintenance'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400 mb-2">
+                        {new Date(record.date).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                        {record.odometer && ` · ${record.odometer.toLocaleString()} miles`}
+                      </div>
+                      <div className="text-sm text-gray-400 mb-2">
+                        {[record.vendor, record.costCents ? `$${(record.costCents / 100).toFixed(2)}` : undefined].filter(Boolean).join(' · ')}
+                      </div>
+                      {record.notes && (
+                        <p className="text-sm text-gray-500">{record.notes}</p>
+                      )}
+                    </div>
+                  </div>
+                  {role === 'admin' && (
+                    <button 
+                      onClick={() => removeRecord(record.id)} 
+                      className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
+                      title="Delete Record"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {filteredRecords.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔧</span>
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  {selectedVehicleId ? 'No maintenance records for this vehicle' : 'No maintenance records yet'}
+                </h3>
+                <p className="text-gray-400">
+                  {selectedVehicleId ? 'Try selecting a different vehicle or add a new record.' : 'Add your first maintenance record to get started.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </main>
   )
 }
