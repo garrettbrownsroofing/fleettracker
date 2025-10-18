@@ -1,9 +1,22 @@
 'use client'
 
 import { useSession } from '@/lib/session'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function Home() {
-  const { user, role } = useSession()
+  const { user, role, isAuthenticated } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   const getGreeting = () => {
     const hour = new Date().getHours()
