@@ -18,19 +18,11 @@ type VehicleStatus = {
 }
 
 export default function ReportsPage() {
-  const { role, isAuthenticated } = useSession()
+  const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
   if (!isAuthenticated) {
     router.replace('/login')
     return null
-  }
-  if (role !== 'admin') {
-    return (
-      <main className="max-w-5xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-2">Reports</h1>
-        <p className="text-gray-600">Access restricted to admin.</p>
-      </main>
-    )
   }
 
   const vehicles = readJson<Vehicle[]>('bft:vehicles', [])
@@ -40,7 +32,16 @@ export default function ReportsPage() {
   const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
 
   const vehicleStatuses = useMemo((): VehicleStatus[] => {
-    return vehicles.map(vehicle => {
+    // Filter vehicles based on user role
+    const visibleVehicles = role === 'admin' 
+      ? vehicles 
+      : vehicles.filter(vehicle => 
+          assignments.some(assignment => 
+            assignment.vehicleId === vehicle.id && assignment.driverId === user?.id
+          )
+        )
+
+    return visibleVehicles.map(vehicle => {
       const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250)
       const currentOdometer = serviceStatuses.length > 0 ? 
         (odologs.find(l => l.vehicleId === vehicle.id)?.odometer ?? 
@@ -62,7 +63,7 @@ export default function ReportsPage() {
         assignedDrivers
       }
     })
-  }, [vehicles, odologs, maintenance, assignments])
+  }, [vehicles, odologs, maintenance, assignments, role, user])
 
   const toggleVehicleExpansion = (vehicleId: string) => {
     setExpandedVehicles(prev => {
@@ -103,9 +104,14 @@ export default function ReportsPage() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-4xl font-bold text-white mb-2">Fleet Reports</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {role === 'admin' ? 'Fleet Reports' : 'My Vehicle Status'}
+          </h1>
           <p className="text-gray-400 text-lg">
-            Overview of all vehicles with maintenance status and detailed information.
+            {role === 'admin' 
+              ? 'Overview of all vehicles with maintenance status and detailed information.'
+              : 'View maintenance status and details for your assigned vehicles.'
+            }
           </p>
         </div>
 
@@ -117,8 +123,10 @@ export default function ReportsPage() {
                 <span className="text-2xl">🛻</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">{vehicles.length}</div>
-                <div className="text-sm text-gray-400">Total Vehicles</div>
+                <div className="text-2xl font-bold text-white">{vehicleStatuses.length}</div>
+                <div className="text-sm text-gray-400">
+                  {role === 'admin' ? 'Total Vehicles' : 'My Vehicles'}
+                </div>
               </div>
             </div>
           </div>
@@ -169,7 +177,9 @@ export default function ReportsPage() {
             <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
               <span className="text-xl">📊</span>
             </div>
-            <h2 className="text-xl font-bold text-white">Vehicle Status Overview</h2>
+            <h2 className="text-xl font-bold text-white">
+              {role === 'admin' ? 'Vehicle Status Overview' : 'My Vehicle Status'}
+            </h2>
           </div>
           
           <div className="space-y-4">
@@ -273,8 +283,15 @@ export default function ReportsPage() {
                 <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🛻</span>
                 </div>
-                <h3 className="text-lg font-medium text-white mb-2">No vehicles found</h3>
-                <p className="text-gray-400">Add vehicles to your fleet to see maintenance reports.</p>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  {role === 'admin' ? 'No vehicles found' : 'No vehicles assigned'}
+                </h3>
+                <p className="text-gray-400">
+                  {role === 'admin' 
+                    ? 'Add vehicles to your fleet to see maintenance reports.'
+                    : 'Contact your administrator to get assigned to vehicles.'
+                  }
+                </p>
               </div>
             )}
           </div>
