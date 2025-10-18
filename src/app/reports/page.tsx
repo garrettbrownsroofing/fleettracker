@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/session'
 import { readJson } from '@/lib/storage'
-import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle, ServiceStatus } from '@/types/fleet'
-import { computeServiceStatuses } from '@/lib/service'
+import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle } from '@/types/fleet'
+import { computeServiceStatuses, type ServiceStatus } from '@/lib/service'
 
 type VehicleStatus = {
   vehicle: Vehicle
