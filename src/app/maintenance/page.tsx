@@ -80,7 +80,11 @@ function MaintenancePageContent() {
   }, [visibleRecords])
 
   const recentRecords = useMemo(() => {
+    const twoWeeksAgo = new Date()
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+    
     return visibleRecords
+      .filter(record => new Date(record.date) >= twoWeeksAgo)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
   }, [visibleRecords])
@@ -264,7 +268,7 @@ function MaintenancePageContent() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-white">{recentRecords.length}</div>
-                <div className="text-sm text-gray-400">Recent Records</div>
+                <div className="text-sm text-gray-400">Recent Records (2 weeks)</div>
               </div>
             </div>
           </div>
