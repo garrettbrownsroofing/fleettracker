@@ -7,14 +7,17 @@ export const revalidate = 0
 
 export async function GET() {
   try {
+    console.log('🔍 GET /api/weekly-checks - Fetching weekly checks...')
     const checks = await weeklyCheckService.getAll()
+    console.log('✅ Weekly checks fetched:', checks.length, 'items')
+    console.log('📋 Weekly checks data:', checks)
     const res = NextResponse.json(checks)
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     res.headers.set('Pragma', 'no-cache')
     res.headers.set('Expires', '0')
     return res
   } catch (error) {
-    console.error('Error fetching weekly checks:', error)
+    console.error('❌ Error fetching weekly checks:', error)
     return NextResponse.json({ error: 'Failed to read weekly checks' }, { status: 500 })
   }
 }
@@ -22,18 +25,22 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const check: WeeklyCheck = await request.json()
+    console.log('📝 POST /api/weekly-checks - Creating weekly check:', check)
     
     // Note: Weekly checks can be submitted on any day, but Friday is preferred
     
     // Validate required fields
     if (!check.vehicleId || !check.driverId || !check.odometer || !check.odometerPhoto) {
+      console.error('❌ Missing required fields:', { vehicleId: !!check.vehicleId, driverId: !!check.driverId, odometer: !!check.odometer, odometerPhoto: !!check.odometerPhoto })
       return NextResponse.json({ 
         error: 'Missing required fields: vehicleId, driverId, odometer, and odometerPhoto are required' 
       }, { status: 400 })
     }
     
     // Create the weekly check
+    console.log('💾 Creating weekly check in database...')
     const createdCheck = await weeklyCheckService.create(check)
+    console.log('✅ Weekly check created successfully:', createdCheck)
     
     // Also create an odometer log entry to sync the reading for service calculations
     const odometerLog: OdometerLog = {

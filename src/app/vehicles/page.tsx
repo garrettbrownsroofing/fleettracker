@@ -81,6 +81,14 @@ function VehiclesPageContent() {
             apiGet<OdometerLog[]>('/api/odometer-logs'),
             apiGet<any[]>('/api/weekly-checks')
           ])
+          console.log('🚗 Vehicles page data loaded:', {
+            vehicles: vehiclesData.length,
+            assignments: assignmentsData.length,
+            maintenance: maintenanceData.length,
+            odometerLogs: odometerData.length,
+            weeklyChecks: weeklyChecksData.length
+          })
+          console.log('📋 Weekly checks data in vehicles page:', weeklyChecksData)
           setVehicles(vehiclesData)
           setAssignments(assignmentsData)
           setMaintenanceRecords(maintenanceData)

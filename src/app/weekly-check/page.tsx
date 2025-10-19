@@ -176,7 +176,9 @@ function WeeklyCheckPageContent() {
     }
     
     try {
-      await apiPost<WeeklyCheck>('/api/weekly-checks', weeklyCheck)
+      console.log('🚀 Submitting weekly check:', weeklyCheck)
+      const result = await apiPost<WeeklyCheck>('/api/weekly-checks', weeklyCheck)
+      console.log('✅ Weekly check submitted successfully:', result)
       
       // Update local state immediately
       setWeeklyChecks(prev => [weeklyCheck, ...prev])

@@ -52,6 +52,14 @@ function ReportsPageContent() {
             apiGet<Assignment[]>('/api/assignments'),
             apiGet<WeeklyCheck[]>('/api/weekly-checks')
           ])
+          console.log('📊 Reports page data loaded:', {
+            vehicles: vehiclesData.length,
+            maintenance: maintenanceData.length,
+            odologs: odologsData.length,
+            assignments: assignmentsData.length,
+            weeklyChecks: weeklyChecksData.length
+          })
+          console.log('📋 Weekly checks data:', weeklyChecksData)
           setVehicles(vehiclesData)
           setMaintenance(maintenanceData)
           setOdoLogs(odologsData)

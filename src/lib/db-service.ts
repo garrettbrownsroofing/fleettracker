@@ -576,14 +576,22 @@ export const weeklyCheckService = {
   async getAll(): Promise<WeeklyCheck[]> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.read<WeeklyCheck>('weekly_checks')
+        console.log('🔍 weeklyCheckService.getAll - Using Firestore')
+        const result = await firestoreService.read<WeeklyCheck>('weekly_checks')
+        console.log('✅ Firestore weekly checks result:', result.length, 'items')
+        return result
       } else {
+        console.log('🔍 weeklyCheckService.getAll - Using simple storage')
         // Fallback to simple storage
-        return await storage.load('weekly_checks')
+        const result = await storage.load('weekly_checks')
+        console.log('✅ Simple storage weekly checks result:', result.length, 'items')
+        return result
       }
     } catch (error) {
-      console.error('Error in weeklyCheckService.getAll, falling back to simple storage:', error)
-      return await storage.load('weekly_checks')
+      console.error('❌ Error in weeklyCheckService.getAll, falling back to simple storage:', error)
+      const result = await storage.load('weekly_checks')
+      console.log('✅ Fallback weekly checks result:', result.length, 'items')
+      return result
     }
   },
 
@@ -606,13 +614,21 @@ export const weeklyCheckService = {
   async create(check: WeeklyCheck): Promise<WeeklyCheck> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.create<WeeklyCheck>('weekly_checks', check.id, check)
+        console.log('💾 weeklyCheckService.create - Using Firestore:', check.id)
+        const result = await firestoreService.create<WeeklyCheck>('weekly_checks', check.id, check)
+        console.log('✅ Firestore create result:', result)
+        return result
       } else {
-        return await storage.create('weekly_checks', check)
+        console.log('💾 weeklyCheckService.create - Using simple storage:', check.id)
+        const result = await storage.create('weekly_checks', check)
+        console.log('✅ Simple storage create result:', result)
+        return result
       }
     } catch (error) {
-      console.error('Error in weeklyCheckService.create, falling back to simple storage:', error)
-      return await storage.create('weekly_checks', check)
+      console.error('❌ Error in weeklyCheckService.create, falling back to simple storage:', error)
+      const result = await storage.create('weekly_checks', check)
+      console.log('✅ Fallback create result:', result)
+      return result
     }
   },
 
