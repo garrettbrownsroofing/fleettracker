@@ -114,7 +114,9 @@ function VehiclesPageContent() {
       setIsAddVehicleExpanded(false) // Collapse form after adding
     } catch (error) {
       console.error('Failed to add vehicle:', error)
+      console.error('Error details:', error)
       // Fallback to localStorage
+      console.log('Falling back to localStorage for vehicle:', vehicle)
       setVehicles(prev => [vehicle, ...prev])
       setNewVehicle({ label: '', plate: '', vin: '' })
       setIsAddVehicleExpanded(false)
