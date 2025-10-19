@@ -28,8 +28,9 @@ export function computeLatestOdometer(
   const latestMaintOdo = maintenance
     .filter(m => m.vehicleId === vehicleId && typeof m.odometer === 'number')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer
-  const initial = vehicles.find(v => v.id === vehicleId)?.initialOdometer
-  const odo = latestLog?.odometer ?? latestMaintOdo ?? initial ?? null
+  
+  // Only use reported readings, not initial odometer
+  const odo = latestLog?.odometer ?? latestMaintOdo ?? null
   return typeof odo === 'number' ? odo : null
 }
 

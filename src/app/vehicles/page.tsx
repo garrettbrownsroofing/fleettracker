@@ -6,7 +6,7 @@ import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/s
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import { computeServiceStatuses } from '@/lib/service'
+import { computeServiceStatuses, computeLatestOdometer } from '@/lib/service'
 
 const STORAGE_KEY = 'bft:vehicles'
 
@@ -47,6 +47,15 @@ function VehiclesPageContent() {
       }
     }
     return overdueCount
+  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles])
+
+  // Calculate current odometer for each vehicle
+  const vehicleCurrentOdometers = useMemo(() => {
+    const odometerMap: { [vehicleId: string]: number | null } = {}
+    for (const vehicle of visibleVehicles) {
+      odometerMap[vehicle.id] = computeLatestOdometer(vehicle.id, odometerLogs, maintenanceRecords, vehicles)
+    }
+    return odometerMap
   }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles])
   
   // Wait for session to be hydrated before redirecting
@@ -523,9 +532,9 @@ function VehiclesPageContent() {
                         {v.notes && (
                           <p className="text-sm text-gray-500">{v.notes}</p>
                         )}
-                        {v.initialOdometer && (
+                        {vehicleCurrentOdometers[v.id] && (
                           <div className="mt-2 text-xs text-gray-500">
-                            Starting odometer: {v.initialOdometer.toLocaleString()} miles
+                            Current odometer: {vehicleCurrentOdometers[v.id]!.toLocaleString()} miles
                           </div>
                         )}
                       </div>
