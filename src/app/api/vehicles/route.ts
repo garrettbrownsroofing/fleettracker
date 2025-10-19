@@ -14,6 +14,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const vehicle: Vehicle = await request.json()
     const createdVehicle = await vehicleService.create(vehicle)
     return NextResponse.json(createdVehicle)
@@ -25,6 +29,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const vehicle: Vehicle = await request.json()
     const updatedVehicle = await vehicleService.update(vehicle.id, vehicle)
     return NextResponse.json(updatedVehicle)
@@ -36,6 +44,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     

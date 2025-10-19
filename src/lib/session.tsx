@@ -87,6 +87,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     if (trimmed.toLowerCase() === 'admin') {
       setUser({ id: 'admin', name: 'Admin' })
       setRole('admin')
+      try {
+        document.cookie = `bft_role=admin; path=/; max-age=${60 * 60 * 24 * 7}`
+      } catch {}
       return { ok: true }
     }
 
@@ -110,12 +113,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     setUser({ id: match.id || normalizeIdFromName(match.name), name: match.name })
     setRole('user')
+    try {
+      document.cookie = `bft_role=user; path=/; max-age=${60 * 60 * 24 * 7}`
+    } catch {}
     return { ok: true }
   }
 
   function logout() {
     setUser(null)
     setRole('user')
+    try {
+      document.cookie = 'bft_role=; path=/; max-age=0'
+    } catch {}
   }
 
   const value = useMemo<SessionState>(

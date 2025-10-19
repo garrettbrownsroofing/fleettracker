@@ -69,7 +69,6 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
 }
 
 export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
-  console.log('API POST:', endpoint, data)
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -77,13 +76,10 @@ export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
     },
     body: JSON.stringify(data),
   })
-  console.log('API POST response:', response.status, response.statusText)
   if (!response.ok) {
     throw new Error(`Failed to post to ${endpoint}: ${response.statusText}`)
   }
-  const result = await response.json()
-  console.log('API POST result:', result)
-  return result
+  return response.json()
 }
 
 export async function apiPut<T>(endpoint: string, data: T): Promise<T> {

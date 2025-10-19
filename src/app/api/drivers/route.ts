@@ -14,6 +14,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const driver: Driver = await request.json()
     const createdDriver = await driverService.create(driver)
     return NextResponse.json(createdDriver)
@@ -25,6 +29,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const driver: Driver = await request.json()
     const updatedDriver = await driverService.update(driver.id, driver)
     return NextResponse.json(updatedDriver)
@@ -36,6 +44,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const role = request.cookies.get('bft_role')?.value
+    if (role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     
