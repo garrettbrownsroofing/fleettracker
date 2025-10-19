@@ -71,7 +71,7 @@ function ReportsPageContent() {
           setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
           setOdoLogs(readJson<OdometerLog[]>('bft:odologs', []))
           setAssignments(readJson<Assignment[]>('bft:assignments', []))
-          setWeeklyChecks(readJson<WeeklyCheck[]>('bft:weeklyChecks', []))
+          setWeeklyChecks(readJson<WeeklyCheck[]>('bft:weekly_checks', []))
         } finally {
           setLoading(false)
         }

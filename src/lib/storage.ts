@@ -4,6 +4,8 @@ const API_ENDPOINTS = {
   'bft:drivers': '/api/drivers',
   'bft:assignments': '/api/assignments',
   'bft:maintenance': '/api/maintenance',
+  'bft:odologs': '/api/odometer-logs',
+  'bft:weekly_checks': '/api/weekly-checks',
 } as const
 
 // Fallback to localStorage for keys not in API_ENDPOINTS
