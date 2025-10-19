@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { readJson, writeJson } from '@/lib/storage'
+import { readJson, writeJson, apiGet } from '@/lib/storage'
 
 export type Role = 'admin' | 'user'
 
@@ -14,7 +14,7 @@ type SessionState = {
   role: Role
   user: SessionUser | null
   isAuthenticated: boolean | null
-  login: (username: string, password: string) => { ok: boolean; error?: string }
+  login: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
 }
 
@@ -79,7 +79,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return name.trim().toLowerCase().replace(/\s+/g, '-')
   }
 
-  function login(username: string, password: string): { ok: boolean; error?: string } {
+  async function login(username: string, password: string): Promise<{ ok: boolean; error?: string }> {
     const trimmed = username.trim()
     if (!trimmed) return { ok: false, error: 'Enter a username' }
     if (password !== 'BrownsFleet1!') return { ok: false, error: 'Invalid password' }
@@ -93,30 +93,36 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return { ok: true }
     }
 
-    // Validate against Drivers by name, normalized id, or email from localStorage
-    const drivers = readJson<Array<{ id: string; name: string; email?: string }>>('bft:drivers', [])
-    const inputLower = trimmed.toLowerCase()
-    const match = drivers.find(d => {
-      const nameLower = (d.name || '').trim().toLowerCase()
-      const normId = (d.id || normalizeIdFromName(d.name || ''))
-      const normIdLower = normId.toLowerCase()
-      const emailLower = (d.email || '').trim().toLowerCase()
-      return (
-        inputLower === nameLower ||
-        inputLower === normIdLower ||
-        (emailLower && inputLower === emailLower)
-      )
-    })
-    if (!match) {
-      return { ok: false, error: 'User not found. Ask admin to add driver.' }
-    }
-
-    setUser({ id: match.id || normalizeIdFromName(match.name), name: match.name })
-    setRole('user')
     try {
-      document.cookie = `bft_role=user; path=/; max-age=${60 * 60 * 24 * 7}`
-    } catch {}
-    return { ok: true }
+      // Fetch drivers from API instead of localStorage
+      const drivers = await apiGet<Array<{ id: string; name: string; email?: string }>>('/api/drivers')
+      const inputLower = trimmed.toLowerCase()
+      const match = drivers.find(d => {
+        const nameLower = (d.name || '').trim().toLowerCase()
+        const normId = (d.id || normalizeIdFromName(d.name || ''))
+        const normIdLower = normId.toLowerCase()
+        const emailLower = (d.email || '').trim().toLowerCase()
+        return (
+          inputLower === nameLower ||
+          inputLower === normIdLower ||
+          (emailLower && inputLower === emailLower)
+        )
+      })
+      
+      if (!match) {
+        return { ok: false, error: 'User not found. Ask admin to add driver.' }
+      }
+
+      setUser({ id: match.id || normalizeIdFromName(match.name), name: match.name })
+      setRole('user')
+      try {
+        document.cookie = `bft_role=user; path=/; max-age=${60 * 60 * 24 * 7}`
+      } catch {}
+      return { ok: true }
+    } catch (error) {
+      console.error('Error fetching drivers for authentication:', error)
+      return { ok: false, error: 'Failed to verify user. Please try again.' }
+    }
   }
 
   function logout() {

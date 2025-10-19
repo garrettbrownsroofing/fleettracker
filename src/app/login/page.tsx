@@ -13,23 +13,29 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
     
-    const res = login(username, password)
-    if (!res.ok) {
-      setError(res.error || 'Login failed')
+    try {
+      const res = await login(username, password)
+      if (!res.ok) {
+        setError(res.error || 'Login failed')
+        setIsLoading(false)
+        return
+      }
+      
+      // Simulate loading for better UX
+      setTimeout(() => {
+        router.push('/')
+        setIsLoading(false)
+      }, 1000)
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Login failed. Please try again.')
       setIsLoading(false)
-      return
     }
-    
-    // Simulate loading for better UX
-    setTimeout(() => {
-      router.push('/')
-      setIsLoading(false)
-    }, 1000)
   }
 
   useEffect(() => {
