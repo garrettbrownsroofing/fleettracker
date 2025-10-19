@@ -11,3 +11,4 @@ Minimal Next.js (App Router) + TypeScript + Tailwind scaffold.
 - Add Vehicles, Drivers, Assignments, Maintenance pages
 - Wire a simple data model (local JSON or DB)
 - Deploy to Vercel and enable auto-deploy from GitHub
+# Deployment trigger - Sat Oct 18 20:27:41 CDT 2025
