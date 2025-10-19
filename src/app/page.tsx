@@ -37,28 +37,28 @@ export default function Home() {
     {
       title: 'Vehicle Management',
       description: 'Track vehicles, VINs, and license plates',
-      href: '/vehicles',
+      href: '/vehicles' as const,
       icon: '🛻',
       color: 'from-blue-500 to-cyan-500'
     },
     {
       title: 'Driver Management',
       description: 'Manage drivers and vehicle assignments',
-      href: '/drivers',
+      href: '/drivers' as const,
       icon: '👷',
       color: 'from-green-500 to-emerald-500'
     },
     {
       title: 'Maintenance Logs',
       description: 'Track repairs, inspections, and service records',
-      href: '/maintenance',
+      href: '/maintenance' as const,
       icon: '🔧',
       color: 'from-orange-500 to-red-500'
     },
     {
       title: 'Financial Reports',
       description: 'View costs, receipts, and budget analysis',
-      href: '/reports',
+      href: '/reports' as const,
       icon: '📊',
       color: 'from-purple-500 to-pink-500'
     }
