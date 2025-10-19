@@ -24,6 +24,7 @@ function VehiclesPageContent() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
   const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const visibleVehicles = useMemo(() => {
@@ -34,6 +35,12 @@ function VehiclesPageContent() {
   }, [vehicles, role, user, assignments])
 
   const totalCount = useMemo(() => visibleVehicles.length, [visibleVehicles])
+  
+  const maintenanceDueCount = useMemo(() => {
+    // For now, return 0 since we don't have maintenance records loaded
+    // This will be calculated properly when we implement maintenance tracking
+    return 0
+  }, [maintenanceRecords])
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -50,17 +57,20 @@ function VehiclesPageContent() {
       async function loadData() {
         try {
           setLoading(true)
-          const [vehiclesData, assignmentsData] = await Promise.all([
+          const [vehiclesData, assignmentsData, maintenanceData] = await Promise.all([
             apiGet<Vehicle[]>('/api/vehicles'),
-            apiGet<Assignment[]>('/api/assignments')
+            apiGet<Assignment[]>('/api/assignments'),
+            apiGet<any[]>('/api/maintenance')
           ])
           setVehicles(vehiclesData)
           setAssignments(assignmentsData)
+          setMaintenanceRecords(maintenanceData)
         } catch (error) {
           console.error('Failed to load data:', error)
           // Fallback to localStorage if API fails
           setVehicles(readJson<Vehicle[]>(STORAGE_KEY, []))
           setAssignments(readJson<Assignment[]>('bft:assignments', []))
+          setMaintenanceRecords(readJson<any[]>('bft:maintenance', []))
         } finally {
           setLoading(false)
         }
@@ -233,7 +243,7 @@ function VehiclesPageContent() {
                 <span className="text-2xl">🔧</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">3</div>
+                <div className="text-2xl font-bold text-white">{maintenanceDueCount}</div>
                 <div className="text-sm text-gray-400">Maintenance Due</div>
               </div>
             </div>
