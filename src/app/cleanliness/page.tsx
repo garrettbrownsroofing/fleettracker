@@ -3,7 +3,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/session'
-import { readJson, writeJson } from '@/lib/storage'
+import { readJson, writeJson, apiGet, apiPost } from '@/lib/storage'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import type { Assignment, CleanlinessLog, Vehicle } from '@/types/fleet'
 
 const STORAGE_CLEAN = 'bft:cleanliness'
@@ -21,21 +22,51 @@ async function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-export default function CleanlinessPage() {
+function CleanlinessPageContent() {
   const { user, isAuthenticated } = useSession()
   const router = useRouter()
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Wait for session to be hydrated before redirecting
   useEffect(() => {
+    console.log('Cleanliness page - Authentication state:', { isAuthenticated, user })
     if (isAuthenticated === false) {
+      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
+
+  // Load data from API on component mount - only when authenticated
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      async function loadData() {
+        try {
+          setLoading(true)
+          const [assignmentsData, vehiclesData] = await Promise.all([
+            apiGet<Assignment[]>('/api/assignments'),
+            apiGet<Vehicle[]>('/api/vehicles')
+          ])
+          setAssignments(assignmentsData)
+          setVehicles(vehiclesData)
+        } catch (error) {
+          console.error('Failed to load data:', error)
+          // Fallback to localStorage if API fails
+          setAssignments(readJson<Assignment[]>('bft:assignments', []))
+          setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadData()
+    }
+  }, [isAuthenticated])
 
   if (isAuthenticated === false) {
     return null
   }
 
-  const assignments = readJson<Assignment[]>('bft:assignments', [])
-  const vehicles = readJson<Vehicle[]>('bft:vehicles', [])
   const myVehicleIds = useMemo(() => new Set(assignments.filter(a => a.driverId === user!.id).map(a => a.vehicleId)), [assignments, user])
   const myVehicles = vehicles.filter(v => myVehicleIds.has(v.id))
 
@@ -53,7 +84,7 @@ export default function CleanlinessPage() {
     for (const f of form.exterior) exterior.push(await fileToDataUrl(f))
     const interior: string[] = []
     for (const f of form.interior) interior.push(await fileToDataUrl(f))
-    const logs = readJson<CleanlinessLog[]>(STORAGE_CLEAN, [])
+    
     const rec: CleanlinessLog = {
       id: generateId(),
       vehicleId: form.vehicleId,
@@ -63,8 +94,34 @@ export default function CleanlinessPage() {
       interiorImages: interior,
       notes: form.notes || undefined,
     }
-    writeJson(STORAGE_CLEAN, [rec, ...logs])
-    setForm(f => ({ ...f, exterior: [], interior: [], notes: '' }))
+    
+    try {
+      await apiPost<CleanlinessLog>('/api/cleanliness', rec)
+      setForm(f => ({ ...f, exterior: [], interior: [], notes: '' }))
+    } catch (error) {
+      console.error('Failed to submit cleanliness log:', error)
+      // Fallback to localStorage
+      const logs = readJson<CleanlinessLog[]>(STORAGE_CLEAN, [])
+      writeJson(STORAGE_CLEAN, [rec, ...logs])
+      setForm(f => ({ ...f, exterior: [], interior: [], notes: '' }))
+    }
+  }
+
+  // Show loading while session is hydrating
+  if (isAuthenticated === null || loading) {
+    return (
+      <main className="max-w-2xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <span className="text-2xl">🧽</span>
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+            <p className="text-gray-400">Syncing data from server</p>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -94,6 +151,14 @@ export default function CleanlinessPage() {
         <button onClick={submit} className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black">Submit</button>
       </div>
     </main>
+  )
+}
+
+export default function CleanlinessPage() {
+  return (
+    <ErrorBoundary>
+      <CleanlinessPageContent />
+    </ErrorBoundary>
   )
 }
 

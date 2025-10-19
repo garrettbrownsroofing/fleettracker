@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import type { MaintenanceRecord, Vehicle, Assignment } from '@/types/fleet'
 import { readJson, writeJson, apiGet, apiPost, apiDelete } from '@/lib/storage'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 
@@ -13,14 +14,18 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export default function MaintenancePage() {
+function MaintenancePageContent() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
+  
+  // Wait for session to be hydrated before redirecting
   useEffect(() => {
+    console.log('Maintenance page - Authentication state:', { isAuthenticated, role, user })
     if (isAuthenticated === false) {
+      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, role, user, router])
 
   if (isAuthenticated === false) {
     return null
@@ -68,31 +73,33 @@ export default function MaintenancePage() {
       .slice(0, 5)
   }, [visibleRecords])
 
-  // Load data from API on component mount
+  // Load data from API on component mount - only when authenticated
   useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true)
-        const [vehiclesData, assignmentsData, recordsData] = await Promise.all([
-          apiGet<Vehicle[]>('/api/vehicles'),
-          apiGet<Assignment[]>('/api/assignments'),
-          apiGet<MaintenanceRecord[]>('/api/maintenance')
-        ])
-        setVehicles(vehiclesData)
-        setAssignments(assignmentsData)
-        setRecords(recordsData)
-      } catch (error) {
-        console.error('Failed to load data:', error)
-        // Fallback to localStorage if API fails
-        setVehicles(readJson<Vehicle[]>(STORAGE_VEHICLES, []))
-        setAssignments(readJson<Assignment[]>('bft:assignments', []))
-        setRecords(readJson<MaintenanceRecord[]>(STORAGE_MAINT, []))
-      } finally {
-        setLoading(false)
+    if (isAuthenticated === true) {
+      async function loadData() {
+        try {
+          setLoading(true)
+          const [vehiclesData, assignmentsData, recordsData] = await Promise.all([
+            apiGet<Vehicle[]>('/api/vehicles'),
+            apiGet<Assignment[]>('/api/assignments'),
+            apiGet<MaintenanceRecord[]>('/api/maintenance')
+          ])
+          setVehicles(vehiclesData)
+          setAssignments(assignmentsData)
+          setRecords(recordsData)
+        } catch (error) {
+          console.error('Failed to load data:', error)
+          // Fallback to localStorage if API fails
+          setVehicles(readJson<Vehicle[]>(STORAGE_VEHICLES, []))
+          setAssignments(readJson<Assignment[]>('bft:assignments', []))
+          setRecords(readJson<MaintenanceRecord[]>(STORAGE_MAINT, []))
+        } finally {
+          setLoading(false)
+        }
       }
+      loadData()
     }
-    loadData()
-  }, [])
+  }, [isAuthenticated])
 
   async function addRecord() {
     const vehicleId = form.vehicleId?.trim()
@@ -112,7 +119,6 @@ export default function MaintenancePage() {
     try {
       const savedRecord = await apiPost<MaintenanceRecord>('/api/maintenance', rec)
       setRecords(prev => [savedRecord, ...prev])
-      writeJson(STORAGE_MAINT, [savedRecord, ...records]) // Keep localStorage in sync
       setForm({ date: new Date().toISOString().slice(0,10) })
       setIsAddRecordExpanded(false)
     } catch (error) {
@@ -129,9 +135,7 @@ export default function MaintenancePage() {
   async function removeRecord(id: string) {
     try {
       await apiDelete('/api/maintenance', id)
-      const next = records.filter(r => r.id !== id)
-      setRecords(next)
-      writeJson(STORAGE_MAINT, next) // Keep localStorage in sync
+      setRecords(prev => prev.filter(r => r.id !== id))
     } catch (error) {
       console.error('Failed to remove maintenance record:', error)
       // Fallback to localStorage
@@ -143,6 +147,25 @@ export default function MaintenancePage() {
 
   function getVehicleLabel(vehicleId: string) {
     return vehicles.find(v => v.id === vehicleId)?.label || 'Unknown vehicle'
+  }
+
+  // Show loading while session is hydrating
+  if (isAuthenticated === null) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">🔧</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+              <p className="text-gray-400">Checking authentication</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   if (loading) {
@@ -458,6 +481,14 @@ export default function MaintenancePage() {
         </section>
       </div>
     </main>
+  )
+}
+
+export default function MaintenancePage() {
+  return (
+    <ErrorBoundary>
+      <MaintenancePageContent />
+    </ErrorBoundary>
   )
 }
 

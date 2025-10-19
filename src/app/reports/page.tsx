@@ -3,7 +3,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/session'
-import { readJson } from '@/lib/storage'
+import { readJson, apiGet } from '@/lib/storage'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle } from '@/types/fleet'
 import { computeServiceStatuses, type ServiceStatus } from '@/lib/service'
 
@@ -17,24 +18,59 @@ type VehicleStatus = {
   assignedDrivers: Assignment[]
 }
 
-export default function ReportsPage() {
+function ReportsPageContent() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([])
+  const [odologs, setOdoLogs] = useState<OdometerLog[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+
+  // Wait for session to be hydrated before redirecting
   useEffect(() => {
+    console.log('Reports page - Authentication state:', { isAuthenticated, role, user })
     if (isAuthenticated === false) {
+      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, role, user, router])
+
+  // Load data from API on component mount - only when authenticated
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      async function loadData() {
+        try {
+          setLoading(true)
+          const [vehiclesData, maintenanceData, odologsData, assignmentsData] = await Promise.all([
+            apiGet<Vehicle[]>('/api/vehicles'),
+            apiGet<MaintenanceRecord[]>('/api/maintenance'),
+            apiGet<OdometerLog[]>('/api/odometer-logs'),
+            apiGet<Assignment[]>('/api/assignments')
+          ])
+          setVehicles(vehiclesData)
+          setMaintenance(maintenanceData)
+          setOdoLogs(odologsData)
+          setAssignments(assignmentsData)
+        } catch (error) {
+          console.error('Failed to load data:', error)
+          // Fallback to localStorage if API fails
+          setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
+          setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
+          setOdoLogs(readJson<OdometerLog[]>('bft:odologs', []))
+          setAssignments(readJson<Assignment[]>('bft:assignments', []))
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadData()
+    }
+  }, [isAuthenticated])
 
   if (isAuthenticated === false) {
     return null
   }
-
-  const vehicles = readJson<Vehicle[]>('bft:vehicles', [])
-  const maintenance = readJson<MaintenanceRecord[]>('bft:maintenance', [])
-  const odologs = readJson<OdometerLog[]>('bft:odologs', [])
-  const assignments = readJson<Assignment[]>('bft:assignments', [])
-  const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
 
   const vehicleStatuses = useMemo((): VehicleStatus[] => {
     // Filter vehicles based on user role
@@ -102,6 +138,43 @@ export default function ReportsPage() {
       case 'overdue':
         return 'border-red-300 bg-red-50'
     }
+  }
+
+  // Show loading while session is hydrating
+  if (isAuthenticated === null) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+              <p className="text-gray-400">Checking authentication</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (loading) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading reports...</h3>
+              <p className="text-gray-400">Syncing data from server</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -303,6 +376,14 @@ export default function ReportsPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <ErrorBoundary>
+      <ReportsPageContent />
+    </ErrorBoundary>
   )
 }
 

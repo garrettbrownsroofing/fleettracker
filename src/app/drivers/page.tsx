@@ -2,9 +2,10 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import type { Driver, Assignment, Vehicle } from '@/types/fleet'
-import { readJson, writeJson } from '@/lib/storage'
+import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/storage'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 const STORAGE_DRIVERS = 'bft:drivers'
 const STORAGE_ASSIGNMENTS = 'bft:assignments'
@@ -14,29 +15,86 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export default function DriversPage() {
+function DriversPageContent() {
   // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
   const { role, isAuthenticated } = useSession()
   const router = useRouter()
-  const [drivers, setDrivers] = useState<Driver[]>(() => readJson<Driver[]>(STORAGE_DRIVERS, []))
-  const [assignments, setAssignments] = useState<Assignment[]>(() => readJson<Assignment[]>(STORAGE_ASSIGNMENTS, []))
+  const [drivers, setDrivers] = useState<Driver[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [newDriver, setNewDriver] = useState<Partial<Driver>>({ name: '', phone: '', email: '' })
   const [isAddDriverExpanded, setIsAddDriverExpanded] = useState(false)
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
   const [editDriver, setEditDriver] = useState<Partial<Driver>>({})
+  const [loading, setLoading] = useState(true)
 
-  const vehicles = readJson<Vehicle[]>(STORAGE_VEHICLES, [])
   const totalDrivers = useMemo(() => drivers.length, [drivers])
+  const availableVehicles = useMemo(() => {
+    // Calculate available vehicles (total vehicles minus assigned vehicles)
+    const assignedVehicleIds = new Set(assignments.map(a => a.vehicleId))
+    return vehicles.filter(v => !assignedVehicleIds.has(v.id)).length
+  }, [vehicles, assignments])
 
+  // Wait for session to be hydrated before redirecting
   useEffect(() => {
+    console.log('Drivers page - Authentication state:', { isAuthenticated, role })
     if (isAuthenticated === false) {
+      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, role, router])
+
+  // Load data from API on component mount - only when authenticated
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      async function loadData() {
+        try {
+          setLoading(true)
+          const [driversData, assignmentsData, vehiclesData] = await Promise.all([
+            apiGet<Driver[]>('/api/drivers'),
+            apiGet<Assignment[]>('/api/assignments'),
+            apiGet<Vehicle[]>('/api/vehicles')
+          ])
+          setDrivers(driversData)
+          setAssignments(assignmentsData)
+          setVehicles(vehiclesData)
+        } catch (error) {
+          console.error('Failed to load data:', error)
+          // Fallback to localStorage if API fails
+          setDrivers(readJson<Driver[]>(STORAGE_DRIVERS, []))
+          setAssignments(readJson<Assignment[]>(STORAGE_ASSIGNMENTS, []))
+          setVehicles(readJson<Vehicle[]>(STORAGE_VEHICLES, []))
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadData()
+    }
+  }, [isAuthenticated])
+
+  // Show loading while session is hydrating
+  if (isAuthenticated === null) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">👷</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+              <p className="text-gray-400">Checking authentication</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   if (isAuthenticated === false) {
     return null
   }
+  
   if (role !== 'admin') {
     return (
       <main className="min-h-screen gradient-bg">
@@ -55,7 +113,25 @@ export default function DriversPage() {
     )
   }
 
-  function addDriver() {
+  if (loading) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">👷</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading drivers...</h3>
+              <p className="text-gray-400">Syncing data from server</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  async function addDriver() {
     const name = (newDriver.name || '').trim()
     if (!name) return
     const driver: Driver = {
@@ -65,35 +141,71 @@ export default function DriversPage() {
       email: (newDriver.email || '').trim() || undefined,
       notes: (newDriver.notes || '').trim() || undefined,
     }
-    const next = [driver, ...drivers]
-    setDrivers(next)
-    writeJson(STORAGE_DRIVERS, next)
-    setNewDriver({ name: '', phone: '', email: '' })
-    setIsAddDriverExpanded(false)
     
-    // If a vehicle was selected, create an assignment
-    if (newDriver.assignedVehicleId) {
-      const assignment: Assignment = {
-        id: generateId(),
-        vehicleId: newDriver.assignedVehicleId,
-        driverId: driver.id,
-        startDate: new Date().toISOString().slice(0, 10),
+    try {
+      const savedDriver = await apiPost<Driver>('/api/drivers', driver)
+      setDrivers(prev => [savedDriver, ...prev])
+      setNewDriver({ name: '', phone: '', email: '' })
+      setIsAddDriverExpanded(false)
+      
+      // If a vehicle was selected, create an assignment
+      if (newDriver.assignedVehicleId) {
+        const assignment: Assignment = {
+          id: generateId(),
+          vehicleId: newDriver.assignedVehicleId,
+          driverId: savedDriver.id,
+          startDate: new Date().toISOString().slice(0, 10),
+        }
+        const savedAssignment = await apiPost<Assignment>('/api/assignments', assignment)
+        setAssignments(prev => [savedAssignment, ...prev])
       }
-      const nextAssignments = [assignment, ...assignments]
-      setAssignments(nextAssignments)
-      writeJson(STORAGE_ASSIGNMENTS, nextAssignments)
+    } catch (error) {
+      console.error('Failed to add driver:', error)
+      // Fallback to localStorage
+      const next = [driver, ...drivers]
+      setDrivers(next)
+      writeJson(STORAGE_DRIVERS, next)
+      setNewDriver({ name: '', phone: '', email: '' })
+      setIsAddDriverExpanded(false)
+      
+      // If a vehicle was selected, create an assignment
+      if (newDriver.assignedVehicleId) {
+        const assignment: Assignment = {
+          id: generateId(),
+          vehicleId: newDriver.assignedVehicleId,
+          driverId: driver.id,
+          startDate: new Date().toISOString().slice(0, 10),
+        }
+        const nextAssignments = [assignment, ...assignments]
+        setAssignments(nextAssignments)
+        writeJson(STORAGE_ASSIGNMENTS, nextAssignments)
+      }
     }
   }
 
-  function removeDriver(id: string) {
-    const next = drivers.filter(d => d.id !== id)
-    setDrivers(next)
-    writeJson(STORAGE_DRIVERS, next)
-    
-    // Also remove any assignments for this driver
-    const nextAssignments = assignments.filter(a => a.driverId !== id)
-    setAssignments(nextAssignments)
-    writeJson(STORAGE_ASSIGNMENTS, nextAssignments)
+  async function removeDriver(id: string) {
+    try {
+      await apiDelete('/api/drivers', id)
+      setDrivers(prev => prev.filter(d => d.id !== id))
+      
+      // Also remove any assignments for this driver
+      const assignmentsToDelete = assignments.filter(a => a.driverId === id)
+      for (const assignment of assignmentsToDelete) {
+        await apiDelete('/api/assignments', assignment.id)
+      }
+      setAssignments(prev => prev.filter(a => a.driverId !== id))
+    } catch (error) {
+      console.error('Failed to remove driver:', error)
+      // Fallback to localStorage
+      const next = drivers.filter(d => d.id !== id)
+      setDrivers(next)
+      writeJson(STORAGE_DRIVERS, next)
+      
+      // Also remove any assignments for this driver
+      const nextAssignments = assignments.filter(a => a.driverId !== id)
+      setAssignments(nextAssignments)
+      writeJson(STORAGE_ASSIGNMENTS, nextAssignments)
+    }
   }
 
   function startEditDriver(driver: Driver) {
@@ -106,7 +218,7 @@ export default function DriversPage() {
     setEditDriver({})
   }
 
-  function saveEditDriver() {
+  async function saveEditDriver() {
     if (!editingDriver) return
     
     const name = (editDriver.name || '').trim()
@@ -120,11 +232,20 @@ export default function DriversPage() {
       notes: (editDriver.notes || '').trim() || undefined,
     }
     
-    const next = drivers.map(d => d.id === editingDriver.id ? updatedDriver : d)
-    setDrivers(next)
-    writeJson(STORAGE_DRIVERS, next)
-    setEditingDriver(null)
-    setEditDriver({})
+    try {
+      const savedDriver = await apiPut<Driver>('/api/drivers', updatedDriver)
+      setDrivers(prev => prev.map(d => d.id === editingDriver.id ? savedDriver : d))
+      setEditingDriver(null)
+      setEditDriver({})
+    } catch (error) {
+      console.error('Failed to update driver:', error)
+      // Fallback to localStorage
+      const next = drivers.map(d => d.id === editingDriver.id ? updatedDriver : d)
+      setDrivers(next)
+      writeJson(STORAGE_DRIVERS, next)
+      setEditingDriver(null)
+      setEditDriver({})
+    }
   }
 
 
@@ -133,22 +254,40 @@ export default function DriversPage() {
     return assignments.filter(a => a.driverId === driverId)
   }
 
-  function addDriverAssignment(driverId: string, vehicleId: string) {
+  async function addDriverAssignment(driverId: string, vehicleId: string) {
     const assignment: Assignment = {
       id: generateId(),
       vehicleId,
       driverId,
       startDate: new Date().toISOString().slice(0, 10),
     }
-    const next = [assignment, ...assignments]
-    setAssignments(next)
-    writeJson(STORAGE_ASSIGNMENTS, next)
+    
+    try {
+      const savedAssignment = await apiPost<Assignment>('/api/assignments', assignment)
+      setAssignments(prev => [savedAssignment, ...prev])
+    } catch (error) {
+      console.error('Failed to add assignment:', error)
+      // Fallback to localStorage
+      const next = [assignment, ...assignments]
+      setAssignments(next)
+      writeJson(STORAGE_ASSIGNMENTS, next)
+    }
   }
 
-  function removeDriverAssignment(driverId: string, vehicleId: string) {
-    const next = assignments.filter(a => !(a.driverId === driverId && a.vehicleId === vehicleId))
-    setAssignments(next)
-    writeJson(STORAGE_ASSIGNMENTS, next)
+  async function removeDriverAssignment(driverId: string, vehicleId: string) {
+    const assignmentToRemove = assignments.find(a => a.driverId === driverId && a.vehicleId === vehicleId)
+    if (!assignmentToRemove) return
+    
+    try {
+      await apiDelete('/api/assignments', assignmentToRemove.id)
+      setAssignments(prev => prev.filter(a => !(a.driverId === driverId && a.vehicleId === vehicleId)))
+    } catch (error) {
+      console.error('Failed to remove assignment:', error)
+      // Fallback to localStorage
+      const next = assignments.filter(a => !(a.driverId === driverId && a.vehicleId === vehicleId))
+      setAssignments(next)
+      writeJson(STORAGE_ASSIGNMENTS, next)
+    }
   }
 
   function labelForVehicle(id: string) {
@@ -185,7 +324,7 @@ export default function DriversPage() {
                 <span className="text-2xl">🛻</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">{vehicles.length}</div>
+                <div className="text-2xl font-bold text-white">{availableVehicles}</div>
                 <div className="text-sm text-gray-400">Available Vehicles</div>
               </div>
             </div>
@@ -491,5 +630,13 @@ export default function DriversPage() {
 
       </div>
     </main>
+  )
+}
+
+export default function DriversPage() {
+  return (
+    <ErrorBoundary>
+      <DriversPageContent />
+    </ErrorBoundary>
   )
 }

@@ -329,6 +329,150 @@ export const maintenanceService = {
   }
 }
 
+// Receipt operations
+export const receiptService = {
+  async getAll(): Promise<Receipt[]> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.read<Receipt>('receipts')
+      } else {
+        // Fallback to simple storage
+        return await storage.load('receipts')
+      }
+    } catch (error) {
+      console.error('Error in receiptService.getAll, falling back to simple storage:', error)
+      return await storage.load('receipts')
+    }
+  },
+
+  async getById(id: string): Promise<Receipt | null> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        const results = await firestoreService.read<Receipt>('receipts', id)
+        return results[0] || null
+      } else {
+        const receipts = await storage.load('receipts')
+        return receipts.find(r => r.id === id) || null
+      }
+    } catch (error) {
+      console.error('Error in receiptService.getById, falling back to simple storage:', error)
+      const receipts = await storage.load('receipts')
+      return receipts.find(r => r.id === id) || null
+    }
+  },
+
+  async create(receipt: Receipt): Promise<Receipt> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.create<Receipt>('receipts', receipt.id, receipt)
+      } else {
+        return await storage.create('receipts', receipt)
+      }
+    } catch (error) {
+      console.error('Error in receiptService.create, falling back to simple storage:', error)
+      return await storage.create('receipts', receipt)
+    }
+  },
+
+  async update(id: string, receipt: Partial<Receipt>): Promise<Receipt> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.update<Receipt>('receipts', id, receipt)
+      } else {
+        return await storage.update('receipts', id, receipt)
+      }
+    } catch (error) {
+      console.error('Error in receiptService.update, falling back to simple storage:', error)
+      return await storage.update('receipts', id, receipt)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.delete('receipts', id)
+      } else {
+        return await storage.delete('receipts', id)
+      }
+    } catch (error) {
+      console.error('Error in receiptService.delete, falling back to simple storage:', error)
+      return await storage.delete('receipts', id)
+    }
+  }
+}
+
+// Cleanliness log operations
+export const cleanlinessService = {
+  async getAll(): Promise<CleanlinessLog[]> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.read<CleanlinessLog>('cleanliness_logs')
+      } else {
+        // Fallback to simple storage
+        return await storage.load('cleanliness_logs')
+      }
+    } catch (error) {
+      console.error('Error in cleanlinessService.getAll, falling back to simple storage:', error)
+      return await storage.load('cleanliness_logs')
+    }
+  },
+
+  async getById(id: string): Promise<CleanlinessLog | null> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        const results = await firestoreService.read<CleanlinessLog>('cleanliness_logs', id)
+        return results[0] || null
+      } else {
+        const logs = await storage.load('cleanliness_logs')
+        return logs.find(l => l.id === id) || null
+      }
+    } catch (error) {
+      console.error('Error in cleanlinessService.getById, falling back to simple storage:', error)
+      const logs = await storage.load('cleanliness_logs')
+      return logs.find(l => l.id === id) || null
+    }
+  },
+
+  async create(log: CleanlinessLog): Promise<CleanlinessLog> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.create<CleanlinessLog>('cleanliness_logs', log.id, log)
+      } else {
+        return await storage.create('cleanliness_logs', log)
+      }
+    } catch (error) {
+      console.error('Error in cleanlinessService.create, falling back to simple storage:', error)
+      return await storage.create('cleanliness_logs', log)
+    }
+  },
+
+  async update(id: string, log: Partial<CleanlinessLog>): Promise<CleanlinessLog> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.update<CleanlinessLog>('cleanliness_logs', id, log)
+      } else {
+        return await storage.update('cleanliness_logs', id, log)
+      }
+    } catch (error) {
+      console.error('Error in cleanlinessService.update, falling back to simple storage:', error)
+      return await storage.update('cleanliness_logs', id, log)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      if (DB_TYPE === 'firestore') {
+        return await firestoreService.delete('cleanliness_logs', id)
+      } else {
+        return await storage.delete('cleanliness_logs', id)
+      }
+    } catch (error) {
+      console.error('Error in cleanlinessService.delete, falling back to simple storage:', error)
+      return await storage.delete('cleanliness_logs', id)
+    }
+  }
+}
+
 // Odometer log operations
 export const odometerLogService = {
   async getAll(): Promise<OdometerLog[]> {
