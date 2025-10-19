@@ -410,11 +410,6 @@ function ReportsPageContent() {
                           .filter(check => check.vehicleId === vehicleStatus.vehicle.id)
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         
-                        // Debug logging
-                        console.log('Vehicle ID:', vehicleStatus.vehicle.id)
-                        console.log('All weekly checks:', weeklyChecks.length)
-                        console.log('Vehicle weekly checks:', vehicleWeeklyChecks.length)
-                        
                         const recentChecks = vehicleWeeklyChecks.slice(0, 1)
                         const allChecks = expandedWeeklyChecks.has(vehicleStatus.vehicle.id) 
                           ? vehicleWeeklyChecks 
