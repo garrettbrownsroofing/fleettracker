@@ -23,14 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     const check: WeeklyCheck = await request.json()
     
-    // Validate that the date is a Friday
-    const checkDate = new Date(check.date)
-    const dayOfWeek = checkDate.getDay()
-    if (dayOfWeek !== 5) { // 5 = Friday
-      return NextResponse.json({ 
-        error: 'Weekly checks must be submitted on Fridays only' 
-      }, { status: 400 })
-    }
+    // Note: Weekly checks can be submitted on any day, but Friday is preferred
     
     // Validate required fields
     if (!check.vehicleId || !check.driverId || !check.odometer || !check.odometerPhoto) {

@@ -114,7 +114,7 @@ function WeeklyCheckPageContent() {
     notes: string
   }>(() => ({
     vehicleId: displayVehicles[0]?.id || '',
-    date: getNextFriday(),
+    date: new Date().toISOString().slice(0, 10), // Default to today
     odometer: '',
     odometerPhoto: null,
     exteriorPhotos: [],
@@ -184,7 +184,7 @@ function WeeklyCheckPageContent() {
       // Reset form
       setForm(f => ({
         vehicleId: displayVehicles[0]?.id || '',
-        date: getNextFriday(),
+        date: new Date().toISOString().slice(0, 10), // Reset to today
         odometer: '',
         odometerPhoto: null,
         exteriorPhotos: [],
@@ -194,7 +194,7 @@ function WeeklyCheckPageContent() {
       setCurrentStep('odometer')
       
       // Show success message
-      alert('Weekly check submitted successfully!')
+      alert('Check In Complete!')
       
     } catch (error) {
       console.error('Failed to submit weekly check:', error)
@@ -263,15 +263,13 @@ function WeeklyCheckPageContent() {
             Weekly Vehicle Check
           </h1>
           <p className="text-gray-400 text-lg">
-            Complete your Friday odometer reading and cleanliness inspection
+            Complete your weekly odometer reading and cleanliness inspection
           </p>
-          {!isTodayFriday() && (
-            <div className="mt-2 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-              <p className="text-yellow-200 text-sm">
-                ⚠️ Weekly checks are typically done on Fridays. Today is {new Date().toLocaleDateString('en-US', { weekday: 'long' })}.
-              </p>
-            </div>
-          )}
+          <div className="mt-2 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <p className="text-blue-200 text-sm">
+              💡 Weekly checks are typically completed on Fridays, but can be submitted any day.
+            </p>
+          </div>
         </div>
 
         {/* Progress Indicator */}
@@ -340,6 +338,9 @@ function WeeklyCheckPageContent() {
                     value={form.date}
                     onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Next Friday: {getNextFriday()}
+                  </p>
                 </div>
                 
                 <div>
