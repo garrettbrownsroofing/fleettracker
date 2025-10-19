@@ -26,6 +26,7 @@ function VehiclesPageContent() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([])
   const [odometerLogs, setOdometerLogs] = useState<OdometerLog[]>([])
+  const [weeklyChecks, setWeeklyChecks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const visibleVehicles = useMemo(() => {
@@ -40,23 +41,23 @@ function VehiclesPageContent() {
   const maintenanceDueCount = useMemo(() => {
     let overdueCount = 0
     for (const vehicle of visibleVehicles) {
-      const serviceStatuses = computeServiceStatuses(vehicle.id, odometerLogs, maintenanceRecords, vehicles, 250)
+      const serviceStatuses = computeServiceStatuses(vehicle.id, odometerLogs, maintenanceRecords, vehicles, 250, weeklyChecks)
       const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
       if (hasOverdue) {
         overdueCount++
       }
     }
     return overdueCount
-  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles])
+  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles, weeklyChecks])
 
   // Calculate current odometer for each vehicle
   const vehicleCurrentOdometers = useMemo(() => {
     const odometerMap: { [vehicleId: string]: number | null } = {}
     for (const vehicle of visibleVehicles) {
-      odometerMap[vehicle.id] = computeLatestOdometer(vehicle.id, odometerLogs, maintenanceRecords, vehicles)
+      odometerMap[vehicle.id] = computeLatestOdometer(vehicle.id, odometerLogs, maintenanceRecords, vehicles, weeklyChecks)
     }
     return odometerMap
-  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles])
+  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles, weeklyChecks])
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -73,16 +74,18 @@ function VehiclesPageContent() {
       async function loadData() {
         try {
           setLoading(true)
-          const [vehiclesData, assignmentsData, maintenanceData, odometerData] = await Promise.all([
+          const [vehiclesData, assignmentsData, maintenanceData, odometerData, weeklyChecksData] = await Promise.all([
             apiGet<Vehicle[]>('/api/vehicles'),
             apiGet<Assignment[]>('/api/assignments'),
             apiGet<MaintenanceRecord[]>('/api/maintenance'),
-            apiGet<OdometerLog[]>('/api/odometer-logs')
+            apiGet<OdometerLog[]>('/api/odometer-logs'),
+            apiGet<any[]>('/api/weekly-checks')
           ])
           setVehicles(vehiclesData)
           setAssignments(assignmentsData)
           setMaintenanceRecords(maintenanceData)
           setOdometerLogs(odometerData)
+          setWeeklyChecks(weeklyChecksData)
         } catch (error) {
           console.error('Failed to load data:', error)
           // Fallback to localStorage if API fails
@@ -90,6 +93,7 @@ function VehiclesPageContent() {
           setAssignments(readJson<Assignment[]>('bft:assignments', []))
           setMaintenanceRecords(readJson<MaintenanceRecord[]>('bft:maintenance', []))
           setOdometerLogs(readJson<OdometerLog[]>('bft:odologs', []))
+          setWeeklyChecks(readJson<any[]>('bft:weekly_checks', []))
         } finally {
           setLoading(false)
         }

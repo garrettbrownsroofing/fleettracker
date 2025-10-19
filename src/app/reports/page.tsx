@@ -6,7 +6,7 @@ import { useSession } from '@/lib/session'
 import { readJson, apiGet } from '@/lib/storage'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle, WeeklyCheck } from '@/types/fleet'
-import { computeServiceStatuses, type ServiceStatus } from '@/lib/service'
+import { computeServiceStatuses, computeLatestOdometer, type ServiceStatus } from '@/lib/service'
 
 // Reports page with vehicle overview and maintenance status
 
@@ -88,11 +88,8 @@ function ReportsPageContent() {
         )
 
     return visibleVehicles.map(vehicle => {
-      const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250)
-      const currentOdometer = serviceStatuses.length > 0 ? 
-        (odologs.find(l => l.vehicleId === vehicle.id)?.odometer ?? 
-         maintenance.find(m => m.vehicleId === vehicle.id && m.odometer)?.odometer ?? 
-         vehicle.initialOdometer ?? null) : null
+      const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250, weeklyChecks)
+      const currentOdometer = computeLatestOdometer(vehicle.id, odologs, maintenance, vehicles, weeklyChecks)
       
       const assignedDrivers = assignments.filter(a => a.vehicleId === vehicle.id)
       
@@ -109,7 +106,7 @@ function ReportsPageContent() {
         assignedDrivers
       }
     })
-  }, [vehicles, odologs, maintenance, assignments, role, user])
+  }, [vehicles, odologs, maintenance, assignments, role, user, weeklyChecks])
 
   // Aggregate service-level counts across visible vehicles
   const serviceCounts = useMemo(() => {

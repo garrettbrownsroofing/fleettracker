@@ -125,8 +125,8 @@ function WeeklyCheckPageContent() {
   // Calculate current odometer and service statuses for each vehicle
   const vehicleStatuses = useMemo(() => {
     return displayVehicles.map(vehicle => {
-      const currentOdometer = computeLatestOdometer(vehicle.id, [], maintenance, vehicles) // Use empty array for odometer logs since we're using weekly checks now
-      const serviceStatuses = computeServiceStatuses(vehicle.id, [], maintenance, vehicles, 250)
+      const currentOdometer = computeLatestOdometer(vehicle.id, [], maintenance, vehicles, weeklyChecks)
+      const serviceStatuses = computeServiceStatuses(vehicle.id, [], maintenance, vehicles, 250, weeklyChecks)
       const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
       const hasWarning = serviceStatuses.some(s => s.status === 'warning')
       const overallStatus = hasOverdue ? 'overdue' : hasWarning ? 'warning' : 'good'
@@ -138,7 +138,7 @@ function WeeklyCheckPageContent() {
         overallStatus
       }
     })
-  }, [displayVehicles, maintenance, vehicles])
+  }, [displayVehicles, maintenance, vehicles, weeklyChecks])
 
   async function submit() {
     if (!form.vehicleId || !form.odometer || !form.odometerPhoto) return

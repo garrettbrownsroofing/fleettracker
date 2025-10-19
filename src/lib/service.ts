@@ -20,8 +20,14 @@ export function computeLatestOdometer(
   vehicleId: string,
   odometerLogs: OdometerLog[],
   maintenance: MaintenanceRecord[],
-  vehicles: Vehicle[]
+  vehicles: Vehicle[],
+  weeklyChecks?: any[]
 ): number | null {
+  // Get latest odometer from weekly checks first (most recent)
+  const latestWeeklyCheck = weeklyChecks
+    ?.filter(w => w.vehicleId === vehicleId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+  
   const latestLog = odometerLogs
     .filter(l => l.vehicleId === vehicleId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
@@ -29,8 +35,8 @@ export function computeLatestOdometer(
     .filter(m => m.vehicleId === vehicleId && typeof m.odometer === 'number')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer
   
-  // Only use reported readings, not initial odometer
-  const odo = latestLog?.odometer ?? latestMaintOdo ?? null
+  // Priority: weekly check > odometer log > maintenance record
+  const odo = latestWeeklyCheck?.odometer ?? latestLog?.odometer ?? latestMaintOdo ?? null
   return typeof odo === 'number' ? odo : null
 }
 
@@ -39,9 +45,10 @@ export function computeServiceStatuses(
   odometerLogs: OdometerLog[],
   maintenance: MaintenanceRecord[],
   vehicles: Vehicle[],
-  warningThresholdMiles = 250
+  warningThresholdMiles = 250,
+  weeklyChecks?: any[]
 ): ServiceStatus[] {
-  const currentOdo = computeLatestOdometer(vehicleId, odometerLogs, maintenance, vehicles)
+  const currentOdo = computeLatestOdometer(vehicleId, odometerLogs, maintenance, vehicles, weeklyChecks)
   if (currentOdo == null) {
     return (Object.keys(SERVICE_INTERVALS_MILES) as ServiceType[]).map(s => ({
       service: s,
