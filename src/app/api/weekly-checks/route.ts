@@ -8,6 +8,8 @@ export const revalidate = 0
 export async function GET() {
   try {
     console.log('🔍 GET /api/weekly-checks - Fetching weekly checks...')
+    console.log('🔍 Database type:', process.env.DB_TYPE || 'firestore')
+    
     const checks = await weeklyCheckService.getAll()
     console.log('✅ Weekly checks fetched:', checks.length, 'items')
     console.log('📋 Weekly checks data:', checks)
@@ -29,6 +31,10 @@ export async function GET() {
     return res
   } catch (error) {
     console.error('❌ Error fetching weekly checks:', error)
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json({ error: 'Failed to read weekly checks' }, { status: 500 })
   }
 }
@@ -37,6 +43,7 @@ export async function POST(request: NextRequest) {
   try {
     const check: WeeklyCheck = await request.json()
     console.log('📝 POST /api/weekly-checks - Creating weekly check:', check)
+    console.log('🔍 Database type:', process.env.DB_TYPE || 'firestore')
     
     // Note: Weekly checks can be submitted on any day, but Friday is preferred
     
