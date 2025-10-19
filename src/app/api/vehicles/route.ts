@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Vehicle } from '@/types/fleet'
 import { vehicleService } from '@/lib/db-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const vehicles = await vehicleService.getAll()
-    return NextResponse.json(vehicles)
+    const res = NextResponse.json(vehicles)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    return res
   } catch (error) {
     console.error('Error fetching vehicles:', error)
     return NextResponse.json({ error: 'Failed to read vehicles' }, { status: 500 })

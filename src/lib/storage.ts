@@ -61,7 +61,7 @@ export function writeJson<T>(key: string, value: T): void {
 
 // API service functions
 export async function apiGet<T>(endpoint: string): Promise<T> {
-  const response = await fetch(endpoint)
+  const response = await fetch(endpoint, { cache: 'no-store' })
   if (!response.ok) {
     throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`)
   }

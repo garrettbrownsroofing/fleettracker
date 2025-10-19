@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { MaintenanceRecord } from '@/types/fleet'
 import { maintenanceService } from '@/lib/db-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const records = await maintenanceService.getAll()
-    return NextResponse.json(records)
+    const res = NextResponse.json(records)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    return res
   } catch (error) {
     console.error('Error fetching maintenance records:', error)
     return NextResponse.json({ error: 'Failed to read maintenance records' }, { status: 500 })
