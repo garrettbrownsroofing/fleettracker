@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/session'
 import { readJson, apiGet } from '@/lib/storage'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle, WeeklyCheck } from '@/types/fleet'
+import type { Assignment, MaintenanceRecord, OdometerLog, Vehicle, WeeklyCheck, Driver } from '@/types/fleet'
 import { computeServiceStatuses, computeLatestOdometer, type ServiceStatus } from '@/lib/service'
 
 // Reports page with vehicle overview and maintenance status
@@ -25,6 +25,7 @@ function ReportsPageContent() {
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([])
   const [odologs, setOdoLogs] = useState<OdometerLog[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [drivers, setDrivers] = useState<Driver[]>([])
   const [weeklyChecks, setWeeklyChecks] = useState<WeeklyCheck[]>([])
   const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
   const [expandedWeeklyChecks, setExpandedWeeklyChecks] = useState<Set<string>>(new Set())
@@ -46,11 +47,12 @@ function ReportsPageContent() {
       } else {
         setLoading(true)
       }
-      const [vehiclesData, maintenanceData, odologsData, assignmentsData, weeklyChecksData] = await Promise.all([
+      const [vehiclesData, maintenanceData, odologsData, assignmentsData, driversData, weeklyChecksData] = await Promise.all([
         apiGet<Vehicle[]>('/api/vehicles'),
         apiGet<MaintenanceRecord[]>('/api/maintenance'),
         apiGet<OdometerLog[]>('/api/odometer-logs'),
         apiGet<Assignment[]>('/api/assignments'),
+        apiGet<Driver[]>('/api/drivers'),
         apiGet<WeeklyCheck[]>('/api/weekly-checks')
       ])
       console.log('📊 Reports page data loaded:', {
@@ -58,6 +60,7 @@ function ReportsPageContent() {
         maintenance: maintenanceData.length,
         odologs: odologsData.length,
         assignments: assignmentsData.length,
+        drivers: driversData.length,
         weeklyChecks: weeklyChecksData.length
       })
       console.log('📋 Weekly checks data:', weeklyChecksData)
@@ -67,6 +70,7 @@ function ReportsPageContent() {
       setMaintenance(maintenanceData)
       setOdoLogs(odologsData)
       setAssignments(assignmentsData)
+      setDrivers(driversData)
       setWeeklyChecks(weeklyChecksData)
     } catch (error) {
       console.error('Failed to load data:', error)
@@ -159,7 +163,7 @@ function ReportsPageContent() {
         assignedDrivers
       }
     })
-  }, [vehicles, odologs, maintenance, assignmentsByVehicle, role, user, weeklyChecks])
+  }, [vehicles, odologs, maintenance, assignmentsByVehicle, role, user, weeklyChecks, drivers])
 
   // Aggregate service-level counts across visible vehicles
   const serviceCounts = useMemo(() => {
@@ -391,7 +395,10 @@ function ReportsPageContent() {
                       )}
                       {vehicleStatus.assignedDrivers.length > 0 && (
                         <div className="text-sm text-gray-500">
-                          Assigned: {vehicleStatus.assignedDrivers.map(a => a.driverId).join(', ')}
+                          Assigned: {vehicleStatus.assignedDrivers.map(a => {
+                            const driver = drivers.find(d => d.id === a.driverId)
+                            return driver ? driver.name : a.driverId
+                          }).join(', ')}
                         </div>
                       )}
                     </div>
