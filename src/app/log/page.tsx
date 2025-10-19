@@ -15,12 +15,13 @@ function generateId(): string {
 }
 
 function WeeklyLogPageContent() {
-  const { user, isAuthenticated } = useSession()
+  const { user, isAuthenticated, role } = useSession()
   const router = useRouter()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [odometerLogs, setOdometerLogs] = useState<OdometerLog[]>([])
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([])
+  const [drivers, setDrivers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -39,16 +40,18 @@ function WeeklyLogPageContent() {
       async function loadData() {
         try {
           setLoading(true)
-          const [assignmentsData, vehiclesData, logsData, maintenanceData] = await Promise.all([
+          const [assignmentsData, vehiclesData, logsData, maintenanceData, driversData] = await Promise.all([
             apiGet<Assignment[]>('/api/assignments'),
             apiGet<Vehicle[]>('/api/vehicles'),
             apiGet<OdometerLog[]>('/api/odometer-logs'),
-            apiGet<MaintenanceRecord[]>('/api/maintenance')
+            apiGet<MaintenanceRecord[]>('/api/maintenance'),
+            apiGet<any[]>('/api/drivers')
           ])
           setAssignments(assignmentsData)
           setVehicles(vehiclesData)
           setOdometerLogs(logsData)
           setMaintenance(maintenanceData)
+          setDrivers(driversData)
         } catch (error) {
           console.error('Failed to load data:', error)
           // Fallback to localStorage if API fails
@@ -56,6 +59,7 @@ function WeeklyLogPageContent() {
           setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
           setOdometerLogs(readJson<OdometerLog[]>(STORAGE_LOGS, []))
           setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
+          setDrivers(readJson<any[]>('bft:drivers', []))
         } finally {
           setLoading(false)
         }
@@ -68,38 +72,55 @@ function WeeklyLogPageContent() {
     return null
   }
 
+  // Get vehicles based on role
   const myVehicleIds = useMemo(() => new Set(assignments.filter(a => a.driverId === user!.id).map(a => a.vehicleId)), [assignments, user])
   const myVehicles = vehicles.filter(v => myVehicleIds.has(v.id))
+  const allVehicles = vehicles // For admin view
+  const displayVehicles = role === 'admin' ? allVehicles : myVehicles
 
   const [form, setForm] = useState<{ vehicleId: string; date: string; odometer: string }>(() => ({
-    vehicleId: myVehicles[0]?.id || '',
+    vehicleId: displayVehicles[0]?.id || '',
     date: new Date().toISOString().slice(0, 10),
     odometer: '',
   }))
 
   // Calculate current odometer and service statuses for each vehicle
   const vehicleStatuses = useMemo(() => {
-    return myVehicles.map(vehicle => {
+    return displayVehicles.map(vehicle => {
       const currentOdometer = computeLatestOdometer(vehicle.id, odometerLogs, maintenance, vehicles)
       const serviceStatuses = computeServiceStatuses(vehicle.id, odometerLogs, maintenance, vehicles, 250)
       const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
       const hasWarning = serviceStatuses.some(s => s.status === 'warning')
       const overallStatus = hasOverdue ? 'overdue' : hasWarning ? 'warning' : 'good'
       
+      // Find current driver assignment for admin view
+      const currentAssignment = assignments.find(a => 
+        a.vehicleId === vehicle.id && 
+        (!a.endDate || new Date(a.endDate) > new Date())
+      )
+      
       return {
         vehicle,
         currentOdometer,
         serviceStatuses,
-        overallStatus
+        overallStatus,
+        currentDriver: currentAssignment ? 
+          assignments.find(a => a.id === currentAssignment.id)?.driverId : null
       }
     })
-  }, [myVehicles, odometerLogs, maintenance, vehicles])
+  }, [displayVehicles, odometerLogs, maintenance, vehicles, assignments])
 
   async function submit() {
     const vehicleId = form.vehicleId
     const date = form.date
     const odometer = Math.max(0, Number(form.odometer) || 0)
     if (!vehicleId || !date || !odometer) return
+    
+    // For users, ensure they can only log odometer readings for their assigned vehicles
+    if (role === 'user' && !myVehicleIds.has(vehicleId)) {
+      console.error('User attempted to log odometer for unassigned vehicle')
+      return
+    }
     
     setSubmitting(true)
     const logEntry: OdometerLog = { id: generateId(), vehicleId, driverId: user!.id, date, odometer }
@@ -166,9 +187,14 @@ function WeeklyLogPageContent() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-4xl font-bold text-white mb-2">Weekly Odometer Log</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {role === 'admin' ? 'Fleet Odometer Log' : 'Weekly Odometer Log'}
+          </h1>
           <p className="text-gray-400 text-lg">
-            Log your vehicle's odometer reading and track maintenance status.
+            {role === 'admin' 
+              ? 'View all vehicles and their current odometer readings. Add odometer updates for any vehicle.'
+              : 'Log your vehicle\'s odometer reading and track maintenance status.'
+            }
           </p>
         </div>
 
@@ -178,7 +204,9 @@ function WeeklyLogPageContent() {
             <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
               <span className="text-xl">📊</span>
             </div>
-            <h2 className="text-xl font-bold text-white">Log Odometer Reading</h2>
+            <h2 className="text-xl font-bold text-white">
+              {role === 'admin' ? 'Add Odometer Reading' : 'Log Odometer Reading'}
+            </h2>
           </div>
           
           <div className="grid gap-4 sm:grid-cols-3">
@@ -190,7 +218,7 @@ function WeeklyLogPageContent() {
                 onChange={e => setForm(f => ({ ...f, vehicleId: e.target.value }))}
               >
                 <option value="">Select vehicle</option>
-                {myVehicles.map(v => (
+                {displayVehicles.map(v => (
                   <option key={v.id} value={v.id}>{v.label}</option>
                 ))}
               </select>
@@ -247,7 +275,9 @@ function WeeklyLogPageContent() {
             <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
               <span className="text-xl">🛻</span>
             </div>
-            <h2 className="text-xl font-bold text-white">Vehicle Status Overview</h2>
+            <h2 className="text-xl font-bold text-white">
+              {role === 'admin' ? 'Fleet Vehicle Status' : 'Vehicle Status Overview'}
+            </h2>
           </div>
           
           <div className="space-y-4">
@@ -279,6 +309,11 @@ function WeeklyLogPageContent() {
                           Current Odometer: {vehicleStatus.currentOdometer.toLocaleString()} miles
                         </div>
                       )}
+                      {role === 'admin' && vehicleStatus.currentDriver && (
+                        <div className="text-sm text-blue-400 mt-1">
+                          Assigned Driver: {drivers.find(d => d.id === vehicleStatus.currentDriver)?.name || 'Unknown'}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -298,8 +333,15 @@ function WeeklyLogPageContent() {
                 <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🛻</span>
                 </div>
-                <h3 className="text-lg font-medium text-white mb-2">No vehicles assigned</h3>
-                <p className="text-gray-400">Contact your administrator to get assigned to vehicles.</p>
+                <h3 className="text-lg font-medium text-white mb-2">
+                  {role === 'admin' ? 'No vehicles found' : 'No vehicles assigned'}
+                </h3>
+                <p className="text-gray-400">
+                  {role === 'admin' 
+                    ? 'Add vehicles to the fleet to start tracking odometer readings.'
+                    : 'Contact your administrator to get assigned to vehicles.'
+                  }
+                </p>
               </div>
             )}
           </div>
