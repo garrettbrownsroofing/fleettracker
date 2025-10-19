@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
     const check: WeeklyCheck = await request.json()
     console.log('📝 POST /api/weekly-checks - Creating weekly check:', check)
     console.log('🔍 Database type:', process.env.DB_TYPE || 'firestore')
+    console.log('🔍 Environment check:', {
+      DB_TYPE: process.env.DB_TYPE,
+      GOOGLE_CLOUD_PROJECT_ID: process.env.GOOGLE_CLOUD_PROJECT_ID ? 'SET' : 'NOT_SET',
+      GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SET' : 'NOT_SET'
+    })
+    console.log('🔍 Check data size:', JSON.stringify(check).length, 'bytes')
     
     // Note: Weekly checks can be submitted on any day, but Friday is preferred
     
@@ -53,6 +59,88 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Missing required fields: vehicleId, driverId, odometer, and odometerPhoto are required' 
       }, { status: 400 })
+    }
+    
+    // Validate data types
+    if (typeof check.odometer !== 'number' || check.odometer < 0) {
+      console.error('❌ Invalid odometer value:', check.odometer)
+      return NextResponse.json({ 
+        error: 'Invalid odometer value: must be a positive number' 
+      }, { status: 400 })
+    }
+    
+    // Validate data structure
+    if (!check.id || typeof check.id !== 'string') {
+      console.error('❌ Invalid ID:', check.id)
+      return NextResponse.json({ 
+        error: 'Invalid ID: must be a non-empty string' 
+      }, { status: 400 })
+    }
+    
+    if (!check.date || typeof check.date !== 'string') {
+      console.error('❌ Invalid date:', check.date)
+      return NextResponse.json({ 
+        error: 'Invalid date: must be a valid date string' 
+      }, { status: 400 })
+    }
+    
+    if (!check.submittedAt || typeof check.submittedAt !== 'string') {
+      console.error('❌ Invalid submittedAt:', check.submittedAt)
+      return NextResponse.json({ 
+        error: 'Invalid submittedAt: must be a valid timestamp string' 
+      }, { status: 400 })
+    }
+    
+    // Validate image data format
+    if (check.odometerPhoto && !check.odometerPhoto.startsWith('data:image/')) {
+      console.error('❌ Invalid odometer photo format:', check.odometerPhoto.substring(0, 50) + '...')
+      return NextResponse.json({ 
+        error: 'Invalid odometer photo: must be a valid base64 data URL' 
+      }, { status: 400 })
+    }
+    
+    if (check.exteriorImages && check.exteriorImages.some(img => !img.startsWith('data:image/'))) {
+      console.error('❌ Invalid exterior image format')
+      return NextResponse.json({ 
+        error: 'Invalid exterior images: must be valid base64 data URLs' 
+      }, { status: 400 })
+    }
+    
+    if (check.interiorImages && check.interiorImages.some(img => !img.startsWith('data:image/'))) {
+      console.error('❌ Invalid interior image format')
+      return NextResponse.json({ 
+        error: 'Invalid interior images: must be valid base64 data URLs' 
+      }, { status: 400 })
+    }
+    
+    // Check if data is too large for Firestore (1MB limit per document)
+    const dataSize = JSON.stringify(check).length
+    console.log('🔍 Data size breakdown:', {
+      totalSize: dataSize,
+      odometerPhotoSize: check.odometerPhoto ? check.odometerPhoto.length : 0,
+      exteriorImagesSize: check.exteriorImages ? check.exteriorImages.reduce((sum, img) => sum + img.length, 0) : 0,
+      interiorImagesSize: check.interiorImages ? check.interiorImages.reduce((sum, img) => sum + img.length, 0) : 0
+    })
+    
+    if (dataSize > 1000000) { // 1MB in bytes
+      console.error('❌ Data too large for Firestore:', dataSize, 'bytes')
+      return NextResponse.json({ 
+        error: 'Data too large: images must be compressed or reduced in size' 
+      }, { status: 400 })
+    }
+    
+    // Test Firestore connection before creating the weekly check
+    try {
+      console.log('🔍 Testing Firestore connection...')
+      const { getFirestore } = await import('@/lib/database')
+      const db = getFirestore()
+      await db.collection('_test').limit(1).get()
+      console.log('✅ Firestore connection verified')
+    } catch (connectionError) {
+      console.error('❌ Firestore connection failed:', connectionError)
+      return NextResponse.json({ 
+        error: 'Database connection failed. Please try again later.' 
+      }, { status: 503 })
     }
     
     // Create the weekly check

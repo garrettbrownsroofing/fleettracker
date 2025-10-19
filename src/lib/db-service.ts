@@ -9,8 +9,23 @@ class FirestoreService {
   private db = getFirestore()
 
   async create<T extends DocumentData>(collection: string, id: string, data: T): Promise<T> {
-    await this.db.collection(collection).doc(id).set(data)
-    return data
+    try {
+      console.log(`💾 FirestoreService.create - Collection: ${collection}, ID: ${id}`)
+      console.log(`💾 Data keys: ${Object.keys(data).join(', ')}`)
+      
+      await this.db.collection(collection).doc(id).set(data)
+      console.log(`✅ FirestoreService.create - Success for ${collection}/${id}`)
+      return data
+    } catch (error) {
+      console.error(`❌ FirestoreService.create - Error for ${collection}/${id}:`, error)
+      console.error(`❌ Error details:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        code: (error as any)?.code,
+        details: (error as any)?.details
+      })
+      throw error
+    }
   }
 
   async read<T extends DocumentData>(collection: string, id?: string): Promise<T[]> {
@@ -234,10 +249,34 @@ export const weeklyCheckService = {
   },
 
   async create(check: WeeklyCheck): Promise<WeeklyCheck> {
-    console.log('💾 weeklyCheckService.create - Using Firestore:', check.id)
-    const result = await firestoreService.create<WeeklyCheck>('weekly_checks', check.id, check)
-    console.log('✅ Firestore create result:', result)
-    return result
+    try {
+      console.log('💾 weeklyCheckService.create - Using Firestore:', check.id)
+      console.log('💾 WeeklyCheck data structure:', {
+        id: check.id,
+        vehicleId: check.vehicleId,
+        driverId: check.driverId,
+        date: check.date,
+        odometer: check.odometer,
+        hasOdometerPhoto: !!check.odometerPhoto,
+        exteriorImagesCount: check.exteriorImages?.length || 0,
+        interiorImagesCount: check.interiorImages?.length || 0,
+        hasNotes: !!check.notes,
+        submittedAt: check.submittedAt
+      })
+      
+      const result = await firestoreService.create<WeeklyCheck>('weekly_checks', check.id, check)
+      console.log('✅ Firestore create result:', result)
+      return result
+    } catch (error) {
+      console.error('❌ weeklyCheckService.create - Error:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        code: (error as any)?.code,
+        details: (error as any)?.details
+      })
+      throw error
+    }
   },
 
   async update(id: string, check: Partial<WeeklyCheck>): Promise<WeeklyCheck> {
