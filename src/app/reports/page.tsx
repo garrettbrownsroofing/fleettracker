@@ -29,6 +29,7 @@ function ReportsPageContent() {
   const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
   const [expandedWeeklyChecks, setExpandedWeeklyChecks] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -37,46 +38,53 @@ function ReportsPageContent() {
     }
   }, [isAuthenticated, role, user, router])
 
+  // Load data from API
+  const loadData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
+      const [vehiclesData, maintenanceData, odologsData, assignmentsData, weeklyChecksData] = await Promise.all([
+        apiGet<Vehicle[]>('/api/vehicles'),
+        apiGet<MaintenanceRecord[]>('/api/maintenance'),
+        apiGet<OdometerLog[]>('/api/odometer-logs'),
+        apiGet<Assignment[]>('/api/assignments'),
+        apiGet<WeeklyCheck[]>('/api/weekly-checks')
+      ])
+      console.log('📊 Reports page data loaded:', {
+        vehicles: vehiclesData.length,
+        maintenance: maintenanceData.length,
+        odologs: odologsData.length,
+        assignments: assignmentsData.length,
+        weeklyChecks: weeklyChecksData.length
+      })
+      console.log('📋 Weekly checks data:', weeklyChecksData)
+      console.log('📊 Odometer logs data:', odologsData)
+      
+      setVehicles(vehiclesData)
+      setMaintenance(maintenanceData)
+      setOdoLogs(odologsData)
+      setAssignments(assignmentsData)
+      setWeeklyChecks(weeklyChecksData)
+    } catch (error) {
+      console.error('Failed to load data:', error)
+      // Fallback to localStorage if API fails
+      setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
+      setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
+      setOdoLogs(readJson<OdometerLog[]>('bft:odologs', []))
+      setAssignments(readJson<Assignment[]>('bft:assignments', []))
+      setWeeklyChecks(readJson<WeeklyCheck[]>('bft:weekly_checks', []))
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
   // Load data from API on component mount - only when authenticated
   useEffect(() => {
     if (isAuthenticated === true) {
-      async function loadData() {
-        try {
-          setLoading(true)
-          const [vehiclesData, maintenanceData, odologsData, assignmentsData, weeklyChecksData] = await Promise.all([
-            apiGet<Vehicle[]>('/api/vehicles'),
-            apiGet<MaintenanceRecord[]>('/api/maintenance'),
-            apiGet<OdometerLog[]>('/api/odometer-logs'),
-            apiGet<Assignment[]>('/api/assignments'),
-            apiGet<WeeklyCheck[]>('/api/weekly-checks')
-          ])
-          console.log('📊 Reports page data loaded:', {
-            vehicles: vehiclesData.length,
-            maintenance: maintenanceData.length,
-            odologs: odologsData.length,
-            assignments: assignmentsData.length,
-            weeklyChecks: weeklyChecksData.length
-          })
-          console.log('📋 Weekly checks data:', weeklyChecksData)
-          console.log('📊 Odometer logs data:', odologsData)
-          
-          setVehicles(vehiclesData)
-          setMaintenance(maintenanceData)
-          setOdoLogs(odologsData)
-          setAssignments(assignmentsData)
-          setWeeklyChecks(weeklyChecksData)
-        } catch (error) {
-          console.error('Failed to load data:', error)
-          // Fallback to localStorage if API fails
-          setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
-          setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
-          setOdoLogs(readJson<OdometerLog[]>('bft:odologs', []))
-          setAssignments(readJson<Assignment[]>('bft:assignments', []))
-          setWeeklyChecks(readJson<WeeklyCheck[]>('bft:weekly_checks', []))
-        } finally {
-          setLoading(false)
-        }
-      }
       loadData()
     }
   }, [isAuthenticated])
@@ -259,15 +267,40 @@ function ReportsPageContent() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            {role === 'admin' ? 'Fleet Reports' : 'My Vehicle Status'}
-          </h1>
-          <p className="text-gray-400 text-lg">
-            {role === 'admin' 
-              ? 'Overview of all vehicles with maintenance status and detailed information.'
-              : 'View maintenance status and details for your assigned vehicles.'
-            }
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">
+                {role === 'admin' ? 'Fleet Reports' : 'My Vehicle Status'}
+              </h1>
+              <p className="text-gray-400 text-lg">
+                {role === 'admin' 
+                  ? 'Overview of all vehicles with maintenance status and detailed information.'
+                  : 'View maintenance status and details for your assigned vehicles.'
+                }
+              </p>
+            </div>
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-lg transition-colors"
+            >
+              {refreshing ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh Data
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Summary Stats */}
