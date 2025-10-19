@@ -166,12 +166,9 @@ function MaintenancePageContent() {
       setIsAddRecordExpanded(false)
     } catch (error) {
       console.error('Failed to add maintenance record:', error)
-      // Fallback to localStorage
-      const next = [rec, ...records]
-      setRecords(next)
-      writeJson(STORAGE_MAINT, next)
-      setForm({ date: new Date().toISOString().slice(0,10), receiptFiles: [] })
-      setIsAddRecordExpanded(false)
+      // For multi-user support, we don't fallback to localStorage
+      // Data must be saved to Firestore
+      alert('Failed to add maintenance record. Please check your connection and try again.')
     }
   }
 

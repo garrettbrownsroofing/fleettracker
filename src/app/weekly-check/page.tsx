@@ -81,11 +81,9 @@ function WeeklyCheckPageContent() {
           setMaintenance(maintenanceData)
         } catch (error) {
           console.error('Failed to load data:', error)
-          // Fallback to localStorage if API fails
-          setAssignments(readJson<Assignment[]>('bft:assignments', []))
-          setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
-          setWeeklyChecks(readJson<WeeklyCheck[]>(STORAGE_WEEKLY_CHECKS, []))
-          setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
+          // For multi-user support, we don't fallback to localStorage
+          // Data must come from Firestore
+          alert('Failed to load data from server. Please check your connection and try again.')
         } finally {
           setLoading(false)
         }
@@ -200,11 +198,9 @@ function WeeklyCheckPageContent() {
       
     } catch (error) {
       console.error('Failed to submit weekly check:', error)
-      // Fallback to localStorage
-      const checks = readJson<WeeklyCheck[]>(STORAGE_WEEKLY_CHECKS, [])
-      const all = [weeklyCheck, ...checks]
-      writeJson(STORAGE_WEEKLY_CHECKS, all)
-      setWeeklyChecks(prev => [weeklyCheck, ...prev])
+      // For multi-user support, we don't fallback to localStorage
+      // Data must be saved to Firestore
+      alert('Failed to submit weekly check. Please check your connection and try again.')
     } finally {
       setSubmitting(false)
     }

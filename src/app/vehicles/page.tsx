@@ -155,10 +155,9 @@ function VehiclesPageContent() {
       setIsAddVehicleExpanded(false) // Collapse form after adding
     } catch (error) {
       console.error('Failed to add vehicle:', error)
-      // Fallback to localStorage
-      setVehicles(prev => [vehicle, ...prev])
-      setNewVehicle({ label: '', plate: '', vin: '' })
-      setIsAddVehicleExpanded(false)
+      // For multi-user support, we don't fallback to localStorage
+      // Data must be saved to Firestore
+      alert('Failed to add vehicle. Please check your connection and try again.')
     }
   }
 

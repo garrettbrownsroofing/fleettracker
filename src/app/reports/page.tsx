@@ -70,12 +70,9 @@ function ReportsPageContent() {
       setWeeklyChecks(weeklyChecksData)
     } catch (error) {
       console.error('Failed to load data:', error)
-      // Fallback to localStorage if API fails
-      setVehicles(readJson<Vehicle[]>('bft:vehicles', []))
-      setMaintenance(readJson<MaintenanceRecord[]>('bft:maintenance', []))
-      setOdoLogs(readJson<OdometerLog[]>('bft:odologs', []))
-      setAssignments(readJson<Assignment[]>('bft:assignments', []))
-      setWeeklyChecks(readJson<WeeklyCheck[]>('bft:weekly_checks', []))
+      // For multi-user support, we don't fallback to localStorage
+      // Data must come from Firestore
+      alert('Failed to load data from server. Please check your connection and try again.')
     } finally {
       setLoading(false)
       setRefreshing(false)

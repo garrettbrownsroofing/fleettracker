@@ -161,25 +161,9 @@ function DriversPageContent() {
       }
     } catch (error) {
       console.error('Failed to add driver:', error)
-      // Fallback to localStorage
-      const next = [driver, ...drivers]
-      setDrivers(next)
-      writeJson(STORAGE_DRIVERS, next)
-      setNewDriver({ name: '', phone: '', email: '' })
-      setIsAddDriverExpanded(false)
-      
-      // If a vehicle was selected, create an assignment
-      if (newDriver.assignedVehicleId) {
-        const assignment: Assignment = {
-          id: generateId(),
-          vehicleId: newDriver.assignedVehicleId,
-          driverId: driver.id,
-          startDate: new Date().toISOString().slice(0, 10),
-        }
-        const nextAssignments = [assignment, ...assignments]
-        setAssignments(nextAssignments)
-        writeJson(STORAGE_ASSIGNMENTS, nextAssignments)
-      }
+      // For multi-user support, we don't fallback to localStorage
+      // Data must be saved to Firestore
+      alert('Failed to add driver. Please check your connection and try again.')
     }
   }
 
@@ -267,10 +251,9 @@ function DriversPageContent() {
       setAssignments(prev => [savedAssignment, ...prev])
     } catch (error) {
       console.error('Failed to add assignment:', error)
-      // Fallback to localStorage
-      const next = [assignment, ...assignments]
-      setAssignments(next)
-      writeJson(STORAGE_ASSIGNMENTS, next)
+      // For multi-user support, we don't fallback to localStorage
+      // Data must be saved to Firestore
+      alert('Failed to add assignment. Please check your connection and try again.')
     }
   }
 
