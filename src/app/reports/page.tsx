@@ -106,6 +106,21 @@ function ReportsPageContent() {
     })
   }, [vehicles, odologs, maintenance, assignments, role, user])
 
+  // Aggregate service-level counts across visible vehicles
+  const serviceCounts = useMemo(() => {
+    let good = 0
+    let warning = 0
+    let overdue = 0
+    for (const vs of vehicleStatuses) {
+      for (const s of vs.serviceStatuses) {
+        if (s.status === 'ok') good++
+        else if (s.status === 'warning') warning++
+        else if (s.status === 'overdue') overdue++
+      }
+    }
+    return { good, warning, overdue }
+  }, [vehicleStatuses])
+
   const toggleVehicleExpansion = (vehicleId: string) => {
     setExpandedVehicles(prev => {
       const newSet = new Set(prev)
@@ -214,10 +229,8 @@ function ReportsPageContent() {
                 <span className="text-2xl">✅</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">
-                  {vehicleStatuses.filter(v => v.overallStatus === 'good').length}
-                </div>
-                <div className="text-sm text-gray-400">Good Status</div>
+                <div className="text-2xl font-bold text-white">{serviceCounts.good}</div>
+                <div className="text-sm text-gray-400">Good Services</div>
               </div>
             </div>
           </div>
@@ -227,10 +240,8 @@ function ReportsPageContent() {
                 <span className="text-2xl">⚠️</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">
-                  {vehicleStatuses.filter(v => v.overallStatus === 'warning').length}
-                </div>
-                <div className="text-sm text-gray-400">Warning</div>
+                <div className="text-2xl font-bold text-white">{serviceCounts.warning}</div>
+                <div className="text-sm text-gray-400">Warning Services</div>
               </div>
             </div>
           </div>
@@ -240,10 +251,8 @@ function ReportsPageContent() {
                 <span className="text-2xl">❌</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">
-                  {vehicleStatuses.filter(v => v.overallStatus === 'overdue').length}
-                </div>
-                <div className="text-sm text-gray-400">Overdue</div>
+                <div className="text-2xl font-bold text-white">{serviceCounts.overdue}</div>
+                <div className="text-sm text-gray-400">Overdue Services</div>
               </div>
             </div>
           </div>
