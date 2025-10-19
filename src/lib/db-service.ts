@@ -44,14 +44,21 @@ export const vehicleService = {
   async getAll(): Promise<Vehicle[]> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.read<Vehicle>('vehicles')
+        console.log('🔍 Fetching vehicles from Firestore...')
+        const vehicles = await firestoreService.read<Vehicle>('vehicles')
+        console.log('✅ Firestore vehicles:', vehicles.length, 'items')
+        return vehicles
       } else {
-        // Fallback to simple storage
-        return await storage.load('vehicles')
+        console.log('🔍 Fetching vehicles from simple storage...')
+        const vehicles = await storage.load('vehicles')
+        console.log('✅ Simple storage vehicles:', vehicles.length, 'items')
+        return vehicles
       }
     } catch (error) {
-      console.error('Error in vehicleService.getAll, falling back to simple storage:', error)
-      return await storage.load('vehicles')
+      console.error('❌ Error in vehicleService.getAll, falling back to simple storage:', error)
+      const vehicles = await storage.load('vehicles')
+      console.log('✅ Fallback vehicles:', vehicles.length, 'items')
+      return vehicles
     }
   },
 
@@ -74,39 +81,60 @@ export const vehicleService = {
   async create(vehicle: Vehicle): Promise<Vehicle> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.create<Vehicle>('vehicles', vehicle.id, vehicle)
+        console.log('💾 Creating vehicle in Firestore:', vehicle.id, vehicle.label)
+        const result = await firestoreService.create<Vehicle>('vehicles', vehicle.id, vehicle)
+        console.log('✅ Firestore create result:', result)
+        return result
       } else {
-        return await storage.create('vehicles', vehicle)
+        console.log('💾 Creating vehicle in simple storage:', vehicle.id, vehicle.label)
+        const result = await storage.create('vehicles', vehicle)
+        console.log('✅ Simple storage create result:', result)
+        return result
       }
     } catch (error) {
-      console.error('Error in vehicleService.create, falling back to simple storage:', error)
-      return await storage.create('vehicles', vehicle)
+      console.error('❌ Error in vehicleService.create, falling back to simple storage:', error)
+      const result = await storage.create('vehicles', vehicle)
+      console.log('✅ Fallback create result:', result)
+      return result
     }
   },
 
   async update(id: string, vehicle: Partial<Vehicle>): Promise<Vehicle> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.update<Vehicle>('vehicles', id, vehicle)
+        console.log('✏️ Updating vehicle in Firestore:', id, vehicle.label)
+        const result = await firestoreService.update<Vehicle>('vehicles', id, vehicle)
+        console.log('✅ Firestore update result:', result)
+        return result
       } else {
-        return await storage.update('vehicles', id, vehicle)
+        console.log('✏️ Updating vehicle in simple storage:', id, vehicle.label)
+        const result = await storage.update('vehicles', id, vehicle)
+        console.log('✅ Simple storage update result:', result)
+        return result
       }
     } catch (error) {
-      console.error('Error in vehicleService.update, falling back to simple storage:', error)
-      return await storage.update('vehicles', id, vehicle)
+      console.error('❌ Error in vehicleService.update, falling back to simple storage:', error)
+      const result = await storage.update('vehicles', id, vehicle)
+      console.log('✅ Fallback update result:', result)
+      return result
     }
   },
 
   async delete(id: string): Promise<void> {
     try {
       if (getDatabaseType() === 'firestore') {
-        return await firestoreService.delete('vehicles', id)
+        console.log('🗑️ Deleting vehicle from Firestore:', id)
+        await firestoreService.delete('vehicles', id)
+        console.log('✅ Firestore delete completed')
       } else {
-        return await storage.delete('vehicles', id)
+        console.log('🗑️ Deleting vehicle from simple storage:', id)
+        await storage.delete('vehicles', id)
+        console.log('✅ Simple storage delete completed')
       }
     } catch (error) {
-      console.error('Error in vehicleService.delete, falling back to simple storage:', error)
-      return await storage.delete('vehicles', id)
+      console.error('❌ Error in vehicleService.delete, falling back to simple storage:', error)
+      await storage.delete('vehicles', id)
+      console.log('✅ Fallback delete completed')
     }
   }
 }
