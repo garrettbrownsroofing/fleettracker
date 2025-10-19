@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { MaintenanceRecord } from '@/types/fleet'
-import { maintenanceService } from '@/lib/db-service'
+import { maintenanceService, vehicleService } from '@/lib/db-service'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -23,6 +23,18 @@ export async function POST(request: NextRequest) {
   try {
     const record: MaintenanceRecord = await request.json()
     const createdRecord = await maintenanceService.create(record)
+    
+    // Update vehicle current odometer if maintenance record has odometer reading
+    if (record.odometer && typeof record.odometer === 'number') {
+      try {
+        await vehicleService.updateCurrentOdometer(record.vehicleId, record.odometer)
+        console.log('✅ Updated vehicle current odometer from maintenance record:', record.vehicleId, record.odometer)
+      } catch (odometerError) {
+        console.error('⚠️ Failed to update vehicle current odometer from maintenance record:', odometerError)
+        // Don't fail the entire request if odometer update fails
+      }
+    }
+    
     return NextResponse.json(createdRecord)
   } catch (error) {
     console.error('Error creating maintenance record:', error)
@@ -34,6 +46,18 @@ export async function PUT(request: NextRequest) {
   try {
     const record: MaintenanceRecord = await request.json()
     const updatedRecord = await maintenanceService.update(record.id, record)
+    
+    // Update vehicle current odometer if maintenance record has odometer reading
+    if (record.odometer && typeof record.odometer === 'number') {
+      try {
+        await vehicleService.updateCurrentOdometer(record.vehicleId, record.odometer)
+        console.log('✅ Updated vehicle current odometer from maintenance record update:', record.vehicleId, record.odometer)
+      } catch (odometerError) {
+        console.error('⚠️ Failed to update vehicle current odometer from maintenance record update:', odometerError)
+        // Don't fail the entire request if odometer update fails
+      }
+    }
+    
     return NextResponse.json(updatedRecord)
   } catch (error) {
     console.error('Error updating maintenance record:', error)

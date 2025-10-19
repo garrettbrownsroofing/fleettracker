@@ -85,6 +85,41 @@ export const vehicleService = {
     console.log('🗑️ Deleting vehicle from Firestore:', id)
     await firestoreService.delete('vehicles', id)
     console.log('✅ Firestore delete completed')
+  },
+
+  async updateCurrentOdometer(vehicleId: string, newOdometer: number): Promise<Vehicle | null> {
+    console.log('🔄 Updating vehicle current odometer:', vehicleId, 'to', newOdometer)
+    
+    try {
+      const vehicle = await this.getById(vehicleId)
+      if (!vehicle) {
+        console.error('❌ Vehicle not found:', vehicleId)
+        return null
+      }
+
+      // Only update if the new odometer reading is higher than current
+      const currentOdometer = vehicle.currentOdometer || vehicle.initialOdometer || 0
+      if (newOdometer <= currentOdometer) {
+        console.log('⚠️ New odometer reading is not higher than current, skipping update:', {
+          vehicleId,
+          currentOdometer,
+          newOdometer
+        })
+        return vehicle
+      }
+
+      const updatedVehicle = await this.update(vehicleId, { currentOdometer: newOdometer })
+      console.log('✅ Vehicle current odometer updated successfully:', {
+        vehicleId,
+        oldOdometer: currentOdometer,
+        newOdometer
+      })
+      
+      return updatedVehicle
+    } catch (error) {
+      console.error('❌ Error updating vehicle current odometer:', error)
+      throw error
+    }
   }
 }
 

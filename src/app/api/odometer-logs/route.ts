@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { OdometerLog } from '@/types/fleet'
-import { odometerLogService } from '@/lib/db-service'
+import { odometerLogService, vehicleService } from '@/lib/db-service'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -23,6 +23,16 @@ export async function POST(request: NextRequest) {
   try {
     const log: OdometerLog = await request.json()
     const createdLog = await odometerLogService.create(log)
+    
+    // Update vehicle current odometer
+    try {
+      await vehicleService.updateCurrentOdometer(log.vehicleId, log.odometer)
+      console.log('✅ Updated vehicle current odometer from odometer log:', log.vehicleId, log.odometer)
+    } catch (odometerError) {
+      console.error('⚠️ Failed to update vehicle current odometer from odometer log:', odometerError)
+      // Don't fail the entire request if odometer update fails
+    }
+    
     return NextResponse.json(createdLog)
   } catch (error) {
     console.error('Error creating odometer log:', error)
@@ -34,6 +44,16 @@ export async function PUT(request: NextRequest) {
   try {
     const log: OdometerLog = await request.json()
     const updatedLog = await odometerLogService.update(log.id, log)
+    
+    // Update vehicle current odometer
+    try {
+      await vehicleService.updateCurrentOdometer(log.vehicleId, log.odometer)
+      console.log('✅ Updated vehicle current odometer from odometer log update:', log.vehicleId, log.odometer)
+    } catch (odometerError) {
+      console.error('⚠️ Failed to update vehicle current odometer from odometer log update:', odometerError)
+      // Don't fail the entire request if odometer update fails
+    }
+    
     return NextResponse.json(updatedLog)
   } catch (error) {
     console.error('Error updating odometer log:', error)

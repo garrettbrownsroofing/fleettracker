@@ -8,6 +8,7 @@ export type Vehicle = {
   year?: number
   notes?: string
   initialOdometer?: number
+  currentOdometer?: number // tracks the most recent odometer reading
 }
 
 export type Driver = {

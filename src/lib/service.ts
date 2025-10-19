@@ -23,6 +23,12 @@ export function computeLatestOdometer(
   vehicles: Vehicle[],
   weeklyChecks?: any[]
 ): number | null {
+  // First check if vehicle has a currentOdometer field set
+  const vehicle = vehicles.find(v => v.id === vehicleId)
+  if (vehicle?.currentOdometer && typeof vehicle.currentOdometer === 'number') {
+    return vehicle.currentOdometer
+  }
+  
   // Get latest odometer from weekly checks first (most recent)
   const latestWeeklyCheck = weeklyChecks
     ?.filter(w => w.vehicleId === vehicleId)
@@ -35,7 +41,7 @@ export function computeLatestOdometer(
     .filter(m => m.vehicleId === vehicleId && typeof m.odometer === 'number')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.odometer
   
-  // Priority: weekly check > odometer log > maintenance record
+  // Priority: vehicle currentOdometer > weekly check > odometer log > maintenance record
   const odo = latestWeeklyCheck?.odometer ?? latestLog?.odometer ?? latestMaintOdo ?? null
   return typeof odo === 'number' ? odo : null
 }

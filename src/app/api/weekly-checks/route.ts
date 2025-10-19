@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { WeeklyCheck, OdometerLog } from '@/types/fleet'
-import { weeklyCheckService, odometerLogService } from '@/lib/db-service'
+import { weeklyCheckService, odometerLogService, vehicleService } from '@/lib/db-service'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -182,6 +182,15 @@ export async function POST(request: NextRequest) {
     const createdCheck = await weeklyCheckService.create(check)
     console.log('✅ Weekly check created successfully:', createdCheck)
     
+    // Update vehicle current odometer
+    try {
+      await vehicleService.updateCurrentOdometer(check.vehicleId, check.odometer)
+      console.log('✅ Updated vehicle current odometer from weekly check:', check.vehicleId, check.odometer)
+    } catch (odometerError) {
+      console.error('⚠️ Failed to update vehicle current odometer from weekly check:', odometerError)
+      // Don't fail the entire request if odometer update fails
+    }
+    
     // Also create an odometer log entry to sync the reading for service calculations
     const odometerLog: OdometerLog = {
       id: `odometer-${check.id}`, // Use a predictable ID based on the weekly check
@@ -209,6 +218,15 @@ export async function PUT(request: NextRequest) {
   try {
     const check: WeeklyCheck = await request.json()
     const updatedCheck = await weeklyCheckService.update(check.id, check)
+    
+    // Update vehicle current odometer
+    try {
+      await vehicleService.updateCurrentOdometer(check.vehicleId, check.odometer)
+      console.log('✅ Updated vehicle current odometer from weekly check update:', check.vehicleId, check.odometer)
+    } catch (odometerError) {
+      console.error('⚠️ Failed to update vehicle current odometer from weekly check update:', odometerError)
+      // Don't fail the entire request if odometer update fails
+    }
     
     // Also update the corresponding odometer log entry
     const odometerLogId = `odometer-${check.id}`
