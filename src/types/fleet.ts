@@ -78,4 +78,17 @@ export type CleanlinessLog = {
   notes?: string
 }
 
+export type WeeklyCheck = {
+  id: string
+  vehicleId: string
+  driverId: string
+  date: string // ISO date (Friday)
+  odometer: number
+  odometerPhoto: string // data URL for odometer photo
+  exteriorImages: string[] // data URLs for exterior photos
+  interiorImages: string[] // data URLs for interior photos
+  notes?: string
+  submittedAt: string // ISO timestamp
+}
+
 

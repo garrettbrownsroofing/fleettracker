@@ -2,7 +2,7 @@
 import { getFirestore } from './database'
 import { getDatabaseType } from './database'
 import { storage } from './simple-storage'
-import type { Vehicle, Driver, Assignment, MaintenanceRecord, OdometerLog, Receipt, CleanlinessLog } from '@/types/fleet'
+import type { Vehicle, Driver, Assignment, MaintenanceRecord, OdometerLog, Receipt, CleanlinessLog, WeeklyCheck } from '@/types/fleet'
 import type { DocumentData } from '@google-cloud/firestore'
 
 // Generic CRUD operations for Firestore
@@ -567,6 +567,78 @@ export const odometerLogService = {
     } catch (error) {
       console.error('Error in odometerLogService.delete, falling back to simple storage:', error)
       return await storage.delete('odometer_logs', id)
+    }
+  }
+}
+
+// Weekly check operations
+export const weeklyCheckService = {
+  async getAll(): Promise<WeeklyCheck[]> {
+    try {
+      if (getDatabaseType() === 'firestore') {
+        return await firestoreService.read<WeeklyCheck>('weekly_checks')
+      } else {
+        // Fallback to simple storage
+        return await storage.load('weekly_checks')
+      }
+    } catch (error) {
+      console.error('Error in weeklyCheckService.getAll, falling back to simple storage:', error)
+      return await storage.load('weekly_checks')
+    }
+  },
+
+  async getById(id: string): Promise<WeeklyCheck | null> {
+    try {
+      if (getDatabaseType() === 'firestore') {
+        const results = await firestoreService.read<WeeklyCheck>('weekly_checks', id)
+        return results[0] || null
+      } else {
+        const checks = await storage.load('weekly_checks')
+        return checks.find(c => c.id === id) || null
+      }
+    } catch (error) {
+      console.error('Error in weeklyCheckService.getById, falling back to simple storage:', error)
+      const checks = await storage.load('weekly_checks')
+      return checks.find(c => c.id === id) || null
+    }
+  },
+
+  async create(check: WeeklyCheck): Promise<WeeklyCheck> {
+    try {
+      if (getDatabaseType() === 'firestore') {
+        return await firestoreService.create<WeeklyCheck>('weekly_checks', check.id, check)
+      } else {
+        return await storage.create('weekly_checks', check)
+      }
+    } catch (error) {
+      console.error('Error in weeklyCheckService.create, falling back to simple storage:', error)
+      return await storage.create('weekly_checks', check)
+    }
+  },
+
+  async update(id: string, check: Partial<WeeklyCheck>): Promise<WeeklyCheck> {
+    try {
+      if (getDatabaseType() === 'firestore') {
+        return await firestoreService.update<WeeklyCheck>('weekly_checks', id, check)
+      } else {
+        return await storage.update('weekly_checks', id, check)
+      }
+    } catch (error) {
+      console.error('Error in weeklyCheckService.update, falling back to simple storage:', error)
+      return await storage.update('weekly_checks', id, check)
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    try {
+      if (getDatabaseType() === 'firestore') {
+        return await firestoreService.delete('weekly_checks', id)
+      } else {
+        return await storage.delete('weekly_checks', id)
+      }
+    } catch (error) {
+      console.error('Error in weeklyCheckService.delete, falling back to simple storage:', error)
+      return await storage.delete('weekly_checks', id)
     }
   }
 }

@@ -22,8 +22,7 @@ export default function Header() {
       { href: '/reports' as const, label: 'Reports' }
     ] : []),
     { href: '/maintenance' as const, label: 'Maintenance' },
-    { href: '/log' as const, label: 'Weekly Log' },
-    { href: '/cleanliness' as const, label: 'Cleanliness' }
+    { href: '/weekly-check' as const, label: 'Weekly Check' }
   ]
 
   return (
