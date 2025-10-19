@@ -15,8 +15,19 @@ function generateId(): string {
 }
 
 export default function DriversPage() {
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
   const { role, isAuthenticated } = useSession()
   const router = useRouter()
+  const [drivers, setDrivers] = useState<Driver[]>(() => readJson<Driver[]>(STORAGE_DRIVERS, []))
+  const [assignments, setAssignments] = useState<Assignment[]>(() => readJson<Assignment[]>(STORAGE_ASSIGNMENTS, []))
+  const [newDriver, setNewDriver] = useState<Partial<Driver>>({ name: '', phone: '', email: '' })
+  const [isAddDriverExpanded, setIsAddDriverExpanded] = useState(false)
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
+  const [editDriver, setEditDriver] = useState<Partial<Driver>>({})
+
+  const vehicles = readJson<Vehicle[]>(STORAGE_VEHICLES, [])
+  const totalDrivers = useMemo(() => drivers.length, [drivers])
+
   useEffect(() => {
     if (isAuthenticated === false) {
       router.replace('/login')
@@ -43,17 +54,6 @@ export default function DriversPage() {
       </main>
     )
   }
-
-  const [drivers, setDrivers] = useState<Driver[]>(() => readJson<Driver[]>(STORAGE_DRIVERS, []))
-  const [assignments, setAssignments] = useState<Assignment[]>(() => readJson<Assignment[]>(STORAGE_ASSIGNMENTS, []))
-  const vehicles = readJson<Vehicle[]>(STORAGE_VEHICLES, [])
-  
-  const [newDriver, setNewDriver] = useState<Partial<Driver>>({ name: '', phone: '', email: '' })
-  const [isAddDriverExpanded, setIsAddDriverExpanded] = useState(false)
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null)
-  const [editDriver, setEditDriver] = useState<Partial<Driver>>({})
-
-  const totalDrivers = useMemo(() => drivers.length, [drivers])
 
   function addDriver() {
     const name = (newDriver.name || '').trim()

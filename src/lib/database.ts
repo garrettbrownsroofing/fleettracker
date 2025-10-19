@@ -3,16 +3,12 @@ import { Firestore } from '@google-cloud/firestore'
 
 // Environment variables for database configuration
 const DB_TYPE = process.env.DB_TYPE || 'firestore'
-const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID || 'fleet-tracker-475514'
 
 // Firestore configuration
 let firestore: Firestore | null = null
 export function getFirestore(): Firestore {
   if (!firestore) {
-    if (!PROJECT_ID) {
-      throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is required for Firestore')
-    }
-    
     const config: any = {
       projectId: PROJECT_ID,
       ignoreUndefinedProperties: true,
@@ -32,6 +28,14 @@ export function getFirestore(): Firestore {
       } else {
         // It's a file path - let Firestore handle it automatically
         config.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS
+      }
+    } else {
+      // Fallback: use the service account key file directly
+      try {
+        const credentials = require('../../service-account-key.json')
+        config.credentials = credentials
+      } catch (error) {
+        console.warn('Could not load service account key file:', error)
       }
     }
     
