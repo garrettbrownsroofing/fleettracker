@@ -17,16 +17,16 @@ class FirestoreService {
   async read<T extends DocumentData>(collection: string, id?: string): Promise<T[]> {
     if (id) {
       const doc = await this.db.collection(collection).doc(id).get()
-      return doc.exists ? [doc.data() as T] : []
+      return doc.exists ? [{ id: doc.id, ...(doc.data() as T) } as T] : []
     }
     const snapshot = await this.db.collection(collection).get()
-    return snapshot.docs.map(doc => doc.data() as T)
+    return snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as T) } as T))
   }
 
   async update<T extends DocumentData>(collection: string, id: string, data: Partial<T>): Promise<T> {
     await this.db.collection(collection).doc(id).update(data)
     const updated = await this.db.collection(collection).doc(id).get()
-    return updated.data() as T
+    return { id: updated.id, ...(updated.data() as T) } as T
   }
 
   async delete(collection: string, id: string): Promise<void> {
