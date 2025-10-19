@@ -50,6 +50,18 @@ export async function POST(request: NextRequest) {
       GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'SET' : 'NOT_SET'
     })
     console.log('🔍 Check data size:', JSON.stringify(check).length, 'bytes')
+    console.log('🔍 Data structure validation:', {
+      hasId: !!check.id,
+      hasVehicleId: !!check.vehicleId,
+      hasDriverId: !!check.driverId,
+      hasDate: !!check.date,
+      hasOdometer: typeof check.odometer === 'number',
+      hasOdometerPhoto: !!check.odometerPhoto,
+      hasSubmittedAt: !!check.submittedAt,
+      exteriorImagesType: Array.isArray(check.exteriorImages),
+      interiorImagesType: Array.isArray(check.interiorImages),
+      notesType: typeof check.notes
+    })
     
     // Note: Weekly checks can be submitted on any day, but Friday is preferred
     
@@ -91,6 +103,28 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
+    // Validate optional fields
+    if (check.notes !== undefined && check.notes !== null && typeof check.notes !== 'string') {
+      console.error('❌ Invalid notes:', check.notes)
+      return NextResponse.json({ 
+        error: 'Invalid notes: must be a string or undefined' 
+      }, { status: 400 })
+    }
+    
+    if (!Array.isArray(check.exteriorImages)) {
+      console.error('❌ Invalid exteriorImages:', check.exteriorImages)
+      return NextResponse.json({ 
+        error: 'Invalid exteriorImages: must be an array' 
+      }, { status: 400 })
+    }
+    
+    if (!Array.isArray(check.interiorImages)) {
+      console.error('❌ Invalid interiorImages:', check.interiorImages)
+      return NextResponse.json({ 
+        error: 'Invalid interiorImages: must be an array' 
+      }, { status: 400 })
+    }
+    
     // Validate image data format
     if (check.odometerPhoto && !check.odometerPhoto.startsWith('data:image/')) {
       console.error('❌ Invalid odometer photo format:', check.odometerPhoto.substring(0, 50) + '...')
@@ -99,14 +133,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    if (check.exteriorImages && check.exteriorImages.some(img => !img.startsWith('data:image/'))) {
+    if (check.exteriorImages.length > 0 && check.exteriorImages.some(img => !img.startsWith('data:image/'))) {
       console.error('❌ Invalid exterior image format')
       return NextResponse.json({ 
         error: 'Invalid exterior images: must be valid base64 data URLs' 
       }, { status: 400 })
     }
     
-    if (check.interiorImages && check.interiorImages.some(img => !img.startsWith('data:image/'))) {
+    if (check.interiorImages.length > 0 && check.interiorImages.some(img => !img.startsWith('data:image/'))) {
       console.error('❌ Invalid interior image format')
       return NextResponse.json({ 
         error: 'Invalid interior images: must be valid base64 data URLs' 
