@@ -1,5 +1,3 @@
-const isBrowser = typeof window !== 'undefined'
-
 // API endpoints mapping
 const API_ENDPOINTS = {
   'bft:vehicles': '/api/vehicles',
@@ -10,7 +8,7 @@ const API_ENDPOINTS = {
 
 // Fallback to localStorage for keys not in API_ENDPOINTS
 export function readJson<T>(key: string, fallback: T): T {
-  if (!isBrowser) return fallback
+  if (typeof window === 'undefined') return fallback
   
   // Check if this key has an API endpoint
   const apiEndpoint = API_ENDPOINTS[key as keyof typeof API_ENDPOINTS]
@@ -38,7 +36,7 @@ export function readJson<T>(key: string, fallback: T): T {
 }
 
 export function writeJson<T>(key: string, value: T): void {
-  if (!isBrowser) return
+  if (typeof window === 'undefined') return
   
   // Check if this key has an API endpoint
   const apiEndpoint = API_ENDPOINTS[key as keyof typeof API_ENDPOINTS]

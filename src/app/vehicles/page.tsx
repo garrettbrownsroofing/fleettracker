@@ -26,10 +26,12 @@ export default function VehiclesPage() {
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
+    console.log('Vehicles page - Authentication state:', { isAuthenticated, role, user })
     if (isAuthenticated === false) {
+      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, role, user, router])
   
   // Show loading while session is hydrating
   if (isAuthenticated === null) {

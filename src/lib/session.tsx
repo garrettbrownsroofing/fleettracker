@@ -32,15 +32,48 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // Load session data after hydration
   useEffect(() => {
-    const savedRole = readJson<Role>(`${STORAGE_KEY}:role`, 'user')
-    const savedUser = readJson<SessionUser | null>(`${STORAGE_KEY}:user`, null)
-    setRole(savedRole)
-    setUser(savedUser)
-    setIsHydrated(true)
+    try {
+      console.log('Loading session data...')
+      console.log('Available localStorage keys:', Object.keys(localStorage))
+      const savedRole = readJson<Role>(`${STORAGE_KEY}:role`, 'user')
+      const savedUser = readJson<SessionUser | null>(`${STORAGE_KEY}:user`, null)
+      console.log('Loaded session data:', { savedRole, savedUser })
+      console.log('Raw localStorage values:', {
+        role: localStorage.getItem(`${STORAGE_KEY}:role`),
+        user: localStorage.getItem(`${STORAGE_KEY}:user`)
+      })
+      setRole(savedRole)
+      setUser(savedUser)
+    } catch (error) {
+      console.error('Error loading session data:', error)
+      // Reset to defaults on error
+      setRole('user')
+      setUser(null)
+    } finally {
+      console.log('Session hydration complete')
+      setIsHydrated(true)
+    }
   }, [])
 
-  useEffect(() => { writeJson(`${STORAGE_KEY}:role`, role) }, [role])
-  useEffect(() => { writeJson(`${STORAGE_KEY}:user`, user) }, [user])
+  useEffect(() => { 
+    if (isHydrated) {
+      try {
+        writeJson(`${STORAGE_KEY}:role`, role)
+      } catch (error) {
+        console.error('Error saving role:', error)
+      }
+    }
+  }, [role, isHydrated])
+  
+  useEffect(() => { 
+    if (isHydrated) {
+      try {
+        writeJson(`${STORAGE_KEY}:user`, user)
+      } catch (error) {
+        console.error('Error saving user:', error)
+      }
+    }
+  }, [user, isHydrated])
 
   function normalizeIdFromName(name: string): string {
     return name.trim().toLowerCase().replace(/\s+/g, '-')
