@@ -62,7 +62,10 @@ export function writeJson<T>(key: string, value: T): void {
 // API service functions
 export async function apiGet<T>(endpoint: string): Promise<T> {
   console.log('🌐 API GET:', endpoint)
-  const response = await fetch(endpoint, { cache: 'no-store' })
+  const response = await fetch(endpoint, { 
+    cache: 'no-store',
+    credentials: 'include'
+  })
   if (!response.ok) {
     console.error('❌ API GET failed:', endpoint, response.statusText)
     throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`)
@@ -80,6 +83,7 @@ export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
+    credentials: 'include'
   })
   if (!response.ok) {
     console.error('❌ API POST failed:', endpoint, response.statusText)
@@ -98,6 +102,7 @@ export async function apiPut<T>(endpoint: string, data: T): Promise<T> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
+    credentials: 'include'
   })
   if (!response.ok) {
     console.error('❌ API PUT failed:', endpoint, response.statusText)
@@ -112,6 +117,7 @@ export async function apiDelete(endpoint: string, id: string): Promise<void> {
   console.log('🌐 API DELETE:', endpoint, id)
   const response = await fetch(`${endpoint}?id=${id}`, {
     method: 'DELETE',
+    credentials: 'include'
   })
   if (!response.ok) {
     console.error('❌ API DELETE failed:', endpoint, response.statusText)
