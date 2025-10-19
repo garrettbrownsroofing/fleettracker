@@ -1,6 +1,6 @@
 // Database service layer for CRUD operations
 import { getFirestore } from './database'
-import { getPostgresPool, getDatabaseType } from './database'
+import { getDatabaseType } from './database'
 import { storage } from './simple-storage'
 import type { Vehicle, Driver, Assignment, MaintenanceRecord, OdometerLog, Receipt, CleanlinessLog } from '@/types/fleet'
 
@@ -35,69 +35,10 @@ class FirestoreService {
   }
 }
 
-// Generic CRUD operations for PostgreSQL
-class PostgresService {
-  private pool = getPostgresPool()
-
-  async create<T>(table: string, data: T): Promise<T> {
-    const columns = Object.keys(data as object)
-    const values = Object.values(data as object)
-    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ')
-    
-    const query = `
-      INSERT INTO ${table} (${columns.join(', ')})
-      VALUES (${placeholders})
-      RETURNING *
-    `
-    
-    const result = await this.pool.query(query, values)
-    return result.rows[0] as T
-  }
-
-  async read<T>(table: string, id?: string): Promise<T[]> {
-    let query = `SELECT * FROM ${table}`
-    let params: any[] = []
-    
-    if (id) {
-      query += ` WHERE id = $1`
-      params = [id]
-    }
-    
-    query += ` ORDER BY created_at DESC`
-    
-    const result = await this.pool.query(query, params)
-    return result.rows as T[]
-  }
-
-  async update<T>(table: string, id: string, data: Partial<T>): Promise<T> {
-    const columns = Object.keys(data as object)
-    const values = Object.values(data as object)
-    const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ')
-    
-    const query = `
-      UPDATE ${table}
-      SET ${setClause}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${columns.length + 1}
-      RETURNING *
-    `
-    
-    const result = await this.pool.query(query, [...values, id])
-    return result.rows[0] as T
-  }
-
-  async delete(table: string, id: string): Promise<void> {
-    await this.pool.query(`DELETE FROM ${table} WHERE id = $1`, [id])
-  }
-}
+// PostgreSQL service removed - using Firestore only
 
 // Service instances
 const firestoreService = new FirestoreService()
-const postgresService = new PostgresService()
-
-// Generic service function that routes to appropriate database
-function getService() {
-  return DB_TYPE === 'firestore' ? firestoreService : postgresService
-}
 
 // Vehicle operations
 export const vehicleService = {
@@ -105,8 +46,6 @@ export const vehicleService = {
     try {
       if (DB_TYPE === 'firestore') {
         return await firestoreService.read<Vehicle>('vehicles')
-      } else if (DB_TYPE === 'postgres') {
-        return await postgresService.read<Vehicle>('vehicles')
       } else {
         // Fallback to simple storage
         return await storage.load('vehicles')
@@ -121,9 +60,6 @@ export const vehicleService = {
     try {
       if (DB_TYPE === 'firestore') {
         const results = await firestoreService.read<Vehicle>('vehicles', id)
-        return results[0] || null
-      } else if (DB_TYPE === 'postgres') {
-        const results = await postgresService.read<Vehicle>('vehicles', id)
         return results[0] || null
       } else {
         const vehicles = await storage.load('vehicles')
@@ -140,8 +76,6 @@ export const vehicleService = {
     try {
       if (DB_TYPE === 'firestore') {
         return await firestoreService.create<Vehicle>('vehicles', vehicle.id, vehicle)
-      } else if (DB_TYPE === 'postgres') {
-        return await postgresService.create<Vehicle>('vehicles', vehicle)
       } else {
         return await storage.create('vehicles', vehicle)
       }
@@ -155,8 +89,6 @@ export const vehicleService = {
     try {
       if (DB_TYPE === 'firestore') {
         return await firestoreService.update<Vehicle>('vehicles', id, vehicle)
-      } else if (DB_TYPE === 'postgres') {
-        return await postgresService.update<Vehicle>('vehicles', id, vehicle)
       } else {
         return await storage.update('vehicles', id, vehicle)
       }
@@ -170,8 +102,6 @@ export const vehicleService = {
     try {
       if (DB_TYPE === 'firestore') {
         return await firestoreService.delete('vehicles', id)
-      } else if (DB_TYPE === 'postgres') {
-        return await postgresService.delete('vehicles', id)
       } else {
         return await storage.delete('vehicles', id)
       }
