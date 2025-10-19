@@ -5,8 +5,6 @@ import { storage } from './simple-storage'
 import type { Vehicle, Driver, Assignment, MaintenanceRecord, OdometerLog, Receipt, CleanlinessLog } from '@/types/fleet'
 import type { DocumentData } from '@google-cloud/firestore'
 
-const DB_TYPE = getDatabaseType()
-
 // Generic CRUD operations for Firestore
 class FirestoreService {
   private db = getFirestore()
@@ -45,7 +43,7 @@ const firestoreService = new FirestoreService()
 export const vehicleService = {
   async getAll(): Promise<Vehicle[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<Vehicle>('vehicles')
       } else {
         // Fallback to simple storage
@@ -59,7 +57,7 @@ export const vehicleService = {
 
   async getById(id: string): Promise<Vehicle | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<Vehicle>('vehicles', id)
         return results[0] || null
       } else {
@@ -75,7 +73,7 @@ export const vehicleService = {
 
   async create(vehicle: Vehicle): Promise<Vehicle> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<Vehicle>('vehicles', vehicle.id, vehicle)
       } else {
         return await storage.create('vehicles', vehicle)
@@ -88,7 +86,7 @@ export const vehicleService = {
 
   async update(id: string, vehicle: Partial<Vehicle>): Promise<Vehicle> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<Vehicle>('vehicles', id, vehicle)
       } else {
         return await storage.update('vehicles', id, vehicle)
@@ -101,7 +99,7 @@ export const vehicleService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('vehicles', id)
       } else {
         return await storage.delete('vehicles', id)
@@ -117,7 +115,7 @@ export const vehicleService = {
 export const driverService = {
   async getAll(): Promise<Driver[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<Driver>('drivers')
       } else {
         // Fallback to simple storage
@@ -131,7 +129,7 @@ export const driverService = {
 
   async getById(id: string): Promise<Driver | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<Driver>('drivers', id)
         return results[0] || null
       } else {
@@ -147,7 +145,7 @@ export const driverService = {
 
   async create(driver: Driver): Promise<Driver> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<Driver>('drivers', driver.id, driver)
       } else {
         return await storage.create('drivers', driver)
@@ -160,7 +158,7 @@ export const driverService = {
 
   async update(id: string, driver: Partial<Driver>): Promise<Driver> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<Driver>('drivers', id, driver)
       } else {
         return await storage.update('drivers', id, driver)
@@ -173,7 +171,7 @@ export const driverService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('drivers', id)
       } else {
         return await storage.delete('drivers', id)
@@ -189,7 +187,7 @@ export const driverService = {
 export const assignmentService = {
   async getAll(): Promise<Assignment[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<Assignment>('assignments')
       } else {
         // Fallback to simple storage
@@ -203,7 +201,7 @@ export const assignmentService = {
 
   async getById(id: string): Promise<Assignment | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<Assignment>('assignments', id)
         return results[0] || null
       } else {
@@ -219,7 +217,7 @@ export const assignmentService = {
 
   async create(assignment: Assignment): Promise<Assignment> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<Assignment>('assignments', assignment.id, assignment)
       } else {
         return await storage.create('assignments', assignment)
@@ -232,7 +230,7 @@ export const assignmentService = {
 
   async update(id: string, assignment: Partial<Assignment>): Promise<Assignment> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<Assignment>('assignments', id, assignment)
       } else {
         return await storage.update('assignments', id, assignment)
@@ -245,7 +243,7 @@ export const assignmentService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('assignments', id)
       } else {
         return await storage.delete('assignments', id)
@@ -261,7 +259,7 @@ export const assignmentService = {
 export const maintenanceService = {
   async getAll(): Promise<MaintenanceRecord[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<MaintenanceRecord>('maintenance_records')
       } else {
         // Fallback to simple storage
@@ -275,7 +273,7 @@ export const maintenanceService = {
 
   async getById(id: string): Promise<MaintenanceRecord | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<MaintenanceRecord>('maintenance_records', id)
         return results[0] || null
       } else {
@@ -291,7 +289,7 @@ export const maintenanceService = {
 
   async create(record: MaintenanceRecord): Promise<MaintenanceRecord> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<MaintenanceRecord>('maintenance_records', record.id, record)
       } else {
         return await storage.create('maintenance_records', record)
@@ -304,7 +302,7 @@ export const maintenanceService = {
 
   async update(id: string, record: Partial<MaintenanceRecord>): Promise<MaintenanceRecord> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<MaintenanceRecord>('maintenance_records', id, record)
       } else {
         return await storage.update('maintenance_records', id, record)
@@ -317,7 +315,7 @@ export const maintenanceService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('maintenance_records', id)
       } else {
         return await storage.delete('maintenance_records', id)
@@ -333,7 +331,7 @@ export const maintenanceService = {
 export const receiptService = {
   async getAll(): Promise<Receipt[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<Receipt>('receipts')
       } else {
         // Fallback to simple storage
@@ -347,7 +345,7 @@ export const receiptService = {
 
   async getById(id: string): Promise<Receipt | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<Receipt>('receipts', id)
         return results[0] || null
       } else {
@@ -363,7 +361,7 @@ export const receiptService = {
 
   async create(receipt: Receipt): Promise<Receipt> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<Receipt>('receipts', receipt.id, receipt)
       } else {
         return await storage.create('receipts', receipt)
@@ -376,7 +374,7 @@ export const receiptService = {
 
   async update(id: string, receipt: Partial<Receipt>): Promise<Receipt> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<Receipt>('receipts', id, receipt)
       } else {
         return await storage.update('receipts', id, receipt)
@@ -389,7 +387,7 @@ export const receiptService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('receipts', id)
       } else {
         return await storage.delete('receipts', id)
@@ -405,7 +403,7 @@ export const receiptService = {
 export const cleanlinessService = {
   async getAll(): Promise<CleanlinessLog[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<CleanlinessLog>('cleanliness_logs')
       } else {
         // Fallback to simple storage
@@ -419,7 +417,7 @@ export const cleanlinessService = {
 
   async getById(id: string): Promise<CleanlinessLog | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<CleanlinessLog>('cleanliness_logs', id)
         return results[0] || null
       } else {
@@ -435,7 +433,7 @@ export const cleanlinessService = {
 
   async create(log: CleanlinessLog): Promise<CleanlinessLog> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<CleanlinessLog>('cleanliness_logs', log.id, log)
       } else {
         return await storage.create('cleanliness_logs', log)
@@ -448,7 +446,7 @@ export const cleanlinessService = {
 
   async update(id: string, log: Partial<CleanlinessLog>): Promise<CleanlinessLog> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<CleanlinessLog>('cleanliness_logs', id, log)
       } else {
         return await storage.update('cleanliness_logs', id, log)
@@ -461,7 +459,7 @@ export const cleanlinessService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('cleanliness_logs', id)
       } else {
         return await storage.delete('cleanliness_logs', id)
@@ -477,7 +475,7 @@ export const cleanlinessService = {
 export const odometerLogService = {
   async getAll(): Promise<OdometerLog[]> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.read<OdometerLog>('odometer_logs')
       } else {
         // Fallback to simple storage
@@ -491,7 +489,7 @@ export const odometerLogService = {
 
   async getById(id: string): Promise<OdometerLog | null> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         const results = await firestoreService.read<OdometerLog>('odometer_logs', id)
         return results[0] || null
       } else {
@@ -507,7 +505,7 @@ export const odometerLogService = {
 
   async create(log: OdometerLog): Promise<OdometerLog> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.create<OdometerLog>('odometer_logs', log.id, log)
       } else {
         return await storage.create('odometer_logs', log)
@@ -520,7 +518,7 @@ export const odometerLogService = {
 
   async update(id: string, log: Partial<OdometerLog>): Promise<OdometerLog> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.update<OdometerLog>('odometer_logs', id, log)
       } else {
         return await storage.update('odometer_logs', id, log)
@@ -533,7 +531,7 @@ export const odometerLogService = {
 
   async delete(id: string): Promise<void> {
     try {
-      if (DB_TYPE === 'firestore') {
+      if (getDatabaseType() === 'firestore') {
         return await firestoreService.delete('odometer_logs', id)
       } else {
         return await storage.delete('odometer_logs', id)
