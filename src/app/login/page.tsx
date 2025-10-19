@@ -32,8 +32,13 @@ export default function LoginPage() {
     }, 1000)
   }
 
-  if (isAuthenticated) {
-    router.replace('/')
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      router.replace('/')
+    }
+  }, [isAuthenticated, router])
+
+  if (isAuthenticated === true) {
     return null
   }
 

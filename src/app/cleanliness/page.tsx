@@ -24,8 +24,13 @@ async function fileToDataUrl(file: File): Promise<string> {
 export default function CleanlinessPage() {
   const { user, isAuthenticated } = useSession()
   const router = useRouter()
-  if (!isAuthenticated) {
-    router.replace('/login')
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+
+  if (isAuthenticated === false) {
     return null
   }
 

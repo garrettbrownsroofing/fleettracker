@@ -16,8 +16,13 @@ function generateId(): string {
 export default function MaintenancePage() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
-  if (!isAuthenticated) {
-    router.replace('/login')
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+
+  if (isAuthenticated === false) {
     return null
   }
   const [vehicles, setVehicles] = useState<Vehicle[]>([])

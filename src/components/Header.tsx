@@ -64,7 +64,7 @@ export default function Header() {
           {/* User Menu */}
           {!isHydrated ? (
             <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
-          ) : isAuthenticated ? (
+          ) : isAuthenticated === true ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-white">{user?.name}</p>
