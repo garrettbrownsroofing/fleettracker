@@ -13,18 +13,10 @@ const STORAGE_VEHICLES = 'bft:vehicles'
 const MAINTENANCE_TYPES = [
   'Oil Change',
   'Tire Rotation',
-  'Brake Service',
-  'Engine Tune-up',
-  'Transmission Service',
-  'Coolant Flush',
-  'Air Filter Replacement',
-  'Battery Replacement',
-  'Alternator Service',
-  'Starter Service',
-  'Suspension Service',
-  'Exhaust System Repair',
-  'AC Service',
-  'Wheel Alignment',
+  'Brake Inspection/Service',
+  'Engine Tune Up',
+  'Fluid Check',
+  'Filter Replacement',
   'Other'
 ]
 
