@@ -29,7 +29,44 @@ function isTodayFriday(): boolean {
   return new Date().getDay() === 5
 }
 
+// Compress image to reduce file size for Firestore
+async function compressImage(file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions maintaining aspect ratio
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+      
+      console.log(`📸 Image compressed: ${file.name} - Original: ${file.size} bytes, Compressed: ${compressedDataUrl.length} bytes`)
+      resolve(compressedDataUrl)
+    }
+    
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 async function fileToDataUrl(file: File): Promise<string> {
+  // Compress images to reduce size for Firestore
+  if (file.type.startsWith('image/')) {
+    return await compressImage(file)
+  }
+  
+  // For non-image files, use original method
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result))
@@ -171,6 +208,27 @@ function WeeklyCheckPageContent() {
       interiorImages: interiorDataUrls,
       notes: form.notes || undefined,
       submittedAt: new Date().toISOString()
+    }
+    
+    // Check total data size before submitting
+    const totalSize = JSON.stringify(weeklyCheck).length
+    console.log('🔍 Total data size:', totalSize, 'bytes')
+    
+    if (totalSize > 900000) { // 900KB limit (leaving some buffer under 1MB)
+      console.warn('⚠️ Data size is large:', totalSize, 'bytes')
+      const sizeBreakdown = {
+        odometerPhoto: odometerPhotoDataUrl.length,
+        exteriorImages: exteriorDataUrls.reduce((sum, img) => sum + img.length, 0),
+        interiorImages: interiorDataUrls.reduce((sum, img) => sum + img.length, 0)
+      }
+      console.log('📊 Size breakdown:', sizeBreakdown)
+      
+      // If still too large, compress more aggressively
+      if (totalSize > 1000000) {
+        alert('Images are too large. Please reduce the number of photos or try again with smaller images.')
+        setSubmitting(false)
+        return
+      }
     }
     
     try {

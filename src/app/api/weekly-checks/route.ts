@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     if (dataSize > 1000000) { // 1MB in bytes
       console.error('❌ Data too large for Firestore:', dataSize, 'bytes')
       return NextResponse.json({ 
-        error: 'Data too large: images must be compressed or reduced in size' 
+        error: `Data too large: ${Math.round(dataSize / 1024)}KB exceeds Firestore 1MB limit. Please reduce image sizes or number of photos.` 
       }, { status: 400 })
     }
     
