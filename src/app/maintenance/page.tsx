@@ -14,6 +14,15 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 function MaintenancePageContent() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
@@ -37,7 +46,10 @@ function MaintenancePageContent() {
   const [isAddRecordExpanded, setIsAddRecordExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const [form, setForm] = useState<Partial<MaintenanceRecord>>({ date: new Date().toISOString().slice(0,10) })
+  const [form, setForm] = useState<Partial<MaintenanceRecord> & { receiptFiles: File[] }>({ 
+    date: new Date().toISOString().slice(0,10),
+    receiptFiles: []
+  })
 
   const visibleVehicleIds = useMemo(() => {
     if (role === 'admin') return new Set(vehicles.map(v => v.id))
@@ -105,6 +117,18 @@ function MaintenancePageContent() {
     const vehicleId = form.vehicleId?.trim()
     const date = (form.date || '').trim()
     if (!vehicleId || !date) return
+    
+    // Convert receipt files to data URLs
+    const receiptImages: string[] = []
+    for (const file of form.receiptFiles || []) {
+      try {
+        const dataUrl = await fileToDataUrl(file)
+        receiptImages.push(dataUrl)
+      } catch (error) {
+        console.error('Failed to convert file to data URL:', error)
+      }
+    }
+    
     const rec: MaintenanceRecord = {
       id: generateId(),
       vehicleId,
@@ -114,12 +138,13 @@ function MaintenancePageContent() {
       costCents: form.costCents ? Number(form.costCents) : undefined,
       vendor: form.vendor?.trim() || undefined,
       notes: form.notes?.trim() || undefined,
+      receiptImages: receiptImages.length > 0 ? receiptImages : undefined,
     }
     
     try {
       const savedRecord = await apiPost<MaintenanceRecord>('/api/maintenance', rec)
       setRecords(prev => [savedRecord, ...prev])
-      setForm({ date: new Date().toISOString().slice(0,10) })
+      setForm({ date: new Date().toISOString().slice(0,10), receiptFiles: [] })
       setIsAddRecordExpanded(false)
     } catch (error) {
       console.error('Failed to add maintenance record:', error)
@@ -127,7 +152,7 @@ function MaintenancePageContent() {
       const next = [rec, ...records]
       setRecords(next)
       writeJson(STORAGE_MAINT, next)
-      setForm({ date: new Date().toISOString().slice(0,10) })
+      setForm({ date: new Date().toISOString().slice(0,10), receiptFiles: [] })
       setIsAddRecordExpanded(false)
     }
   }
@@ -349,6 +374,19 @@ function MaintenancePageContent() {
                       onChange={e => setForm(v => ({ ...v, notes: e.target.value }))}
                     />
                   </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Receipt Images</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="modern-input w-full"
+                      onChange={e => setForm(v => ({ ...v, receiptFiles: Array.from(e.target.files || []) }))}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Upload receipt images for this maintenance record (optional)
+                    </p>
+                  </div>
                 </div>
                 <div className="mt-6 flex gap-3">
                   <button onClick={addRecord} className="btn-primary">
@@ -445,7 +483,24 @@ function MaintenancePageContent() {
                         {[record.vendor, record.costCents ? `$${(record.costCents / 100).toFixed(2)}` : undefined].filter(Boolean).join(' · ')}
                       </div>
                       {record.notes && (
-                        <p className="text-sm text-gray-500">{record.notes}</p>
+                        <p className="text-sm text-gray-500 mb-2">{record.notes}</p>
+                      )}
+                      {record.receiptImages && record.receiptImages.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-400 mb-2">Receipt Images:</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {record.receiptImages.map((image, index) => (
+                              <img
+                                key={index}
+                                src={image}
+                                alt={`Receipt ${index + 1}`}
+                                className="w-16 h-16 object-cover rounded border border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => window.open(image, '_blank')}
+                                title="Click to view full size"
+                              />
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

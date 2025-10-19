@@ -23,7 +23,6 @@ export default function Header() {
     ] : []),
     { href: '/maintenance' as const, label: 'Maintenance' },
     { href: '/log' as const, label: 'Weekly Log' },
-    { href: '/receipts' as const, label: 'Receipts' },
     { href: '/cleanliness' as const, label: 'Cleanliness' }
   ]
 

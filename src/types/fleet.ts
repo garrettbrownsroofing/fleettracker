@@ -38,6 +38,7 @@ export type MaintenanceRecord = {
   costCents?: number
   vendor?: string
   notes?: string
+  receiptImages?: string[] // data URLs for receipt images
 }
 
 export type ServiceType =
