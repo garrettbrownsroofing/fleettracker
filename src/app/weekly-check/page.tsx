@@ -151,31 +151,31 @@ function WeeklyCheckPageContent() {
     
     setSubmitting(true)
     
+    // Convert files to data URLs
+    const odometerPhotoDataUrl = await fileToDataUrl(form.odometerPhoto!)
+    const exteriorDataUrls: string[] = []
+    for (const file of form.exteriorPhotos) {
+      exteriorDataUrls.push(await fileToDataUrl(file))
+    }
+    const interiorDataUrls: string[] = []
+    for (const file of form.interiorPhotos) {
+      interiorDataUrls.push(await fileToDataUrl(file))
+    }
+    
+    const weeklyCheck: WeeklyCheck = {
+      id: generateId(),
+      vehicleId: form.vehicleId,
+      driverId: user!.id,
+      date: form.date,
+      odometer: Math.max(0, Number(form.odometer) || 0),
+      odometerPhoto: odometerPhotoDataUrl,
+      exteriorImages: exteriorDataUrls,
+      interiorImages: interiorDataUrls,
+      notes: form.notes || undefined,
+      submittedAt: new Date().toISOString()
+    }
+    
     try {
-      // Convert files to data URLs
-      const odometerPhotoDataUrl = await fileToDataUrl(form.odometerPhoto!)
-      const exteriorDataUrls: string[] = []
-      for (const file of form.exteriorPhotos) {
-        exteriorDataUrls.push(await fileToDataUrl(file))
-      }
-      const interiorDataUrls: string[] = []
-      for (const file of form.interiorPhotos) {
-        interiorDataUrls.push(await fileToDataUrl(file))
-      }
-      
-      const weeklyCheck: WeeklyCheck = {
-        id: generateId(),
-        vehicleId: form.vehicleId,
-        driverId: user!.id,
-        date: form.date,
-        odometer: Math.max(0, Number(form.odometer) || 0),
-        odometerPhoto: odometerPhotoDataUrl,
-        exteriorImages: exteriorDataUrls,
-        interiorImages: interiorDataUrls,
-        notes: form.notes || undefined,
-        submittedAt: new Date().toISOString()
-      }
-      
       await apiPost<WeeklyCheck>('/api/weekly-checks', weeklyCheck)
       
       // Update local state immediately
