@@ -286,11 +286,28 @@ function WeeklyCheckPageContent() {
   const canProceed = () => {
     switch (currentStep) {
       case 'odometer':
-        return form.vehicleId && form.odometer && form.odometerPhoto
+        const canProceedOdometer = form.vehicleId && form.odometer && form.odometerPhoto
+        console.log('🔍 Odometer step validation:', {
+          vehicleId: !!form.vehicleId,
+          odometer: !!form.odometer,
+          odometerPhoto: !!form.odometerPhoto,
+          canProceed: canProceedOdometer
+        })
+        return canProceedOdometer
       case 'exterior':
-        return form.exteriorPhotos.length > 0
+        const canProceedExterior = form.exteriorPhotos.length > 0
+        console.log('🔍 Exterior step validation:', {
+          exteriorPhotosCount: form.exteriorPhotos.length,
+          canProceed: canProceedExterior
+        })
+        return canProceedExterior
       case 'interior':
-        return form.interiorPhotos.length > 0
+        const canProceedInterior = form.interiorPhotos.length > 0
+        console.log('🔍 Interior step validation:', {
+          interiorPhotosCount: form.interiorPhotos.length,
+          canProceed: canProceedInterior
+        })
+        return canProceedInterior
       case 'review':
         return true
       default:
@@ -421,7 +438,11 @@ function WeeklyCheckPageContent() {
                       className="hidden"
                       onChange={e => {
                         const file = e.target.files?.[0]
-                        if (file) setForm(f => ({ ...f, odometerPhoto: file }))
+                        console.log('📸 Odometer photo selected:', file?.name, file?.size, 'bytes')
+                        if (file) {
+                          setForm(f => ({ ...f, odometerPhoto: file }))
+                          console.log('✅ Odometer photo set in form')
+                        }
                       }}
                     />
                     <button
