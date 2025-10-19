@@ -43,6 +43,31 @@ function VehiclesPageContent() {
       router.replace('/login')
     }
   }, [isAuthenticated, role, user, router])
+
+  // Load data from API on component mount - only when authenticated
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      async function loadData() {
+        try {
+          setLoading(true)
+          const [vehiclesData, assignmentsData] = await Promise.all([
+            apiGet<Vehicle[]>('/api/vehicles'),
+            apiGet<Assignment[]>('/api/assignments')
+          ])
+          setVehicles(vehiclesData)
+          setAssignments(assignmentsData)
+        } catch (error) {
+          console.error('Failed to load data:', error)
+          // Fallback to localStorage if API fails
+          setVehicles(readJson<Vehicle[]>(STORAGE_KEY, []))
+          setAssignments(readJson<Assignment[]>('bft:assignments', []))
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadData()
+    }
+  }, [isAuthenticated])
   
   // Show loading while session is hydrating
   if (isAuthenticated === null) {
@@ -66,29 +91,6 @@ function VehiclesPageContent() {
   if (isAuthenticated === false) {
     return null
   }
-
-  // Load data from API on component mount
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true)
-        const [vehiclesData, assignmentsData] = await Promise.all([
-          apiGet<Vehicle[]>('/api/vehicles'),
-          apiGet<Assignment[]>('/api/assignments')
-        ])
-        setVehicles(vehiclesData)
-        setAssignments(assignmentsData)
-      } catch (error) {
-        console.error('Failed to load data:', error)
-        // Fallback to localStorage if API fails
-        setVehicles(readJson<Vehicle[]>(STORAGE_KEY, []))
-        setAssignments(readJson<Assignment[]>('bft:assignments', []))
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [])
 
   async function addVehicle() {
     const label = (newVehicle.label || '').trim()
