@@ -16,15 +16,15 @@ export default function Header() {
   }, [])
 
   const navItems = [
-    { href: '/vehicles', label: 'Vehicles' },
+    { href: '/vehicles' as const, label: 'Vehicles' },
     ...(isHydrated && role === 'admin' ? [
-      { href: '/drivers', label: 'Drivers' },
-      { href: '/reports', label: 'Reports' }
+      { href: '/drivers' as const, label: 'Drivers' },
+      { href: '/reports' as const, label: 'Reports' }
     ] : []),
-    { href: '/maintenance', label: 'Maintenance' },
-    { href: '/log', label: 'Weekly Log' },
-    { href: '/receipts', label: 'Receipts' },
-    { href: '/cleanliness', label: 'Cleanliness' }
+    { href: '/maintenance' as const, label: 'Maintenance' },
+    { href: '/log' as const, label: 'Weekly Log' },
+    { href: '/receipts' as const, label: 'Receipts' },
+    { href: '/cleanliness' as const, label: 'Cleanliness' }
   ]
 
   return (
