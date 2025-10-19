@@ -3,6 +3,7 @@
 import { useSession } from '@/lib/session'
 import BrownsLogo from './BrownsLogo'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 export default function Header() {
   const { role, user, isAuthenticated, logout } = useSession()
@@ -30,24 +31,24 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-700 bg-black/80 backdrop-blur-lg">
       <nav className="max-w-7xl mx-auto flex items-center justify-between p-4">
         {/* Logo and Brand */}
-        <a href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-3 group">
           <BrownsLogo size="md" className="transition-transform group-hover:scale-105" />
           <div className="hidden sm:block">
             <h1 className="text-xl font-bold text-white">Brown's Fleet Tracker</h1>
             <p className="text-xs text-gray-400">Professional Fleet Management</p>
           </div>
-        </a>
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-1">
           {navItems.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
               className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200"
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -77,9 +78,9 @@ export default function Header() {
               </button>
             </div>
           ) : (
-            <a href="/login" className="btn-primary text-sm">
+            <Link href="/login" className="btn-primary text-sm">
               Login
-            </a>
+            </Link>
           )}
 
           {/* Mobile Menu Button */}
@@ -99,14 +100,14 @@ export default function Header() {
         <div className="lg:hidden border-t border-gray-700 bg-black/95 backdrop-blur-lg">
           <div className="px-4 py-4 space-y-2">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className="block px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all duration-200"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

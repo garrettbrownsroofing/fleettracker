@@ -3,6 +3,7 @@
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import Link from 'next/link'
 
 export default function Home() {
   const { user, role, isAuthenticated } = useSession()
@@ -112,7 +113,7 @@ export default function Home() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {quickActions.map((action, index) => (
-                <a
+                <Link
                   key={index}
                   href={action.href}
                   className="modern-card group hover:scale-105 transition-all duration-300"
@@ -132,7 +133,7 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
           </div>
