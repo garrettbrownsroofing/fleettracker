@@ -21,3 +21,4 @@ node_modules
 coverage
 playwright-report
 .prisma
+service-account-key.json

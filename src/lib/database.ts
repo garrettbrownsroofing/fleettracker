@@ -20,11 +20,18 @@ export function getFirestore(): Firestore {
     
     // If we have service account credentials, use them
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      try {
-        const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-        config.credentials = credentials
-      } catch (error) {
-        console.warn('Failed to parse service account credentials:', error)
+      // Check if it's a file path or JSON string
+      if (process.env.GOOGLE_APPLICATION_CREDENTIALS.startsWith('{')) {
+        // It's a JSON string
+        try {
+          const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+          config.credentials = credentials
+        } catch (error) {
+          console.warn('Failed to parse service account credentials:', error)
+        }
+      } else {
+        // It's a file path - let Firestore handle it automatically
+        config.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS
       }
     }
     

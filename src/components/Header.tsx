@@ -2,15 +2,21 @@
 
 import { useSession } from '@/lib/session'
 import BrownsLogo from './BrownsLogo'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function Header() {
   const { role, user, isAuthenticated, logout } = useSession()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Handle hydration
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   const navItems = [
     { href: '/vehicles', label: 'Vehicles' },
-    ...(role === 'admin' ? [
+    ...(isHydrated && role === 'admin' ? [
       { href: '/drivers', label: 'Drivers' },
       { href: '/reports', label: 'Reports' }
     ] : []),
@@ -55,7 +61,9 @@ export default function Header() {
           </button>
 
           {/* User Menu */}
-          {isAuthenticated ? (
+          {!isHydrated ? (
+            <div className="w-20 h-8 bg-gray-700 rounded animate-pulse"></div>
+          ) : isAuthenticated ? (
             <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-white">{user?.name}</p>

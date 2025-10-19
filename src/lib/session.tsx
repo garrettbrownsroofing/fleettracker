@@ -23,10 +23,20 @@ const STORAGE_KEY = 'bft:session'
 const SessionContext = createContext<SessionState | undefined>(undefined)
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<Role>(() => readJson<Role>(`${STORAGE_KEY}:role`, 'user'))
-  const [user, setUser] = useState<SessionUser | null>(() => readJson<SessionUser | null>(`${STORAGE_KEY}:user`, null))
+  const [role, setRole] = useState<Role>('user')
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   const isAuthenticated = !!user
+
+  // Load session data after hydration
+  useEffect(() => {
+    const savedRole = readJson<Role>(`${STORAGE_KEY}:role`, 'user')
+    const savedUser = readJson<SessionUser | null>(`${STORAGE_KEY}:user`, null)
+    setRole(savedRole)
+    setUser(savedUser)
+    setIsHydrated(true)
+  }, [])
 
   useEffect(() => { writeJson(`${STORAGE_KEY}:role`, role) }, [role])
   useEffect(() => { writeJson(`${STORAGE_KEY}:user`, user) }, [user])
