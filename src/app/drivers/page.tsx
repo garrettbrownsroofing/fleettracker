@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { Driver, Assignment, Vehicle } from '@/types/fleet'
 import { readJson, writeJson } from '@/lib/storage'
 import { useSession } from '@/lib/session'
