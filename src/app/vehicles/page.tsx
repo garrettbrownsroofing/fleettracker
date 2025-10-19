@@ -16,6 +16,13 @@ function generateId(): string {
 export default function VehiclesPage() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
+  const [isAddVehicleExpanded, setIsAddVehicleExpanded] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
+  const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -46,13 +53,6 @@ export default function VehiclesPage() {
   if (isAuthenticated === false) {
     return null
   }
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
-  const [isAddVehicleExpanded, setIsAddVehicleExpanded] = useState(false)
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
-  const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [loading, setLoading] = useState(true)
 
   const visibleVehicles = useMemo(() => {
     if (role === 'admin') return vehicles
@@ -104,15 +104,12 @@ export default function VehiclesPage() {
     try {
       const savedVehicle = await apiPost<Vehicle>('/api/vehicles', vehicle)
       setVehicles(prev => [savedVehicle, ...prev])
-      writeJson(STORAGE_KEY, [savedVehicle, ...vehicles]) // Keep localStorage in sync
       setNewVehicle({ label: '', plate: '', vin: '' })
       setIsAddVehicleExpanded(false) // Collapse form after adding
     } catch (error) {
       console.error('Failed to add vehicle:', error)
       // Fallback to localStorage
-      const nextAll = [vehicle, ...vehicles]
-      setVehicles(nextAll)
-      writeJson(STORAGE_KEY, nextAll)
+      setVehicles(prev => [vehicle, ...prev])
       setNewVehicle({ label: '', plate: '', vin: '' })
       setIsAddVehicleExpanded(false)
     }
@@ -121,15 +118,11 @@ export default function VehiclesPage() {
   async function removeVehicle(id: string) {
     try {
       await apiDelete('/api/vehicles', id)
-      const nextAll = vehicles.filter(v => v.id !== id)
-      setVehicles(nextAll)
-      writeJson(STORAGE_KEY, nextAll) // Keep localStorage in sync
+      setVehicles(prev => prev.filter(v => v.id !== id))
     } catch (error) {
       console.error('Failed to remove vehicle:', error)
       // Fallback to localStorage
-      const nextAll = vehicles.filter(v => v.id !== id)
-      setVehicles(nextAll)
-      writeJson(STORAGE_KEY, nextAll)
+      setVehicles(prev => prev.filter(v => v.id !== id))
     }
   }
 
@@ -163,17 +156,13 @@ export default function VehiclesPage() {
     
     try {
       const savedVehicle = await apiPut<Vehicle>('/api/vehicles', updatedVehicle)
-      const nextAll = vehicles.map(v => v.id === editingVehicle.id ? savedVehicle : v)
-      setVehicles(nextAll)
-      writeJson(STORAGE_KEY, nextAll) // Keep localStorage in sync
+      setVehicles(prev => prev.map(v => v.id === editingVehicle.id ? savedVehicle : v))
       setEditingVehicle(null)
       setEditVehicle({})
     } catch (error) {
       console.error('Failed to update vehicle:', error)
       // Fallback to localStorage
-      const nextAll = vehicles.map(v => v.id === editingVehicle.id ? updatedVehicle : v)
-      setVehicles(nextAll)
-      writeJson(STORAGE_KEY, nextAll)
+      setVehicles(prev => prev.map(v => v.id === editingVehicle.id ? updatedVehicle : v))
       setEditingVehicle(null)
       setEditVehicle({})
     }
