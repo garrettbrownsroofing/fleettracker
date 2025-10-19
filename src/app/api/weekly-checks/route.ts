@@ -11,6 +11,17 @@ export async function GET() {
     const checks = await weeklyCheckService.getAll()
     console.log('✅ Weekly checks fetched:', checks.length, 'items')
     console.log('📋 Weekly checks data:', checks)
+    
+    // Debug: Log each check's vehicle ID to help with debugging
+    checks.forEach((check, index) => {
+      console.log(`📋 Weekly check ${index + 1}:`, {
+        id: check.id,
+        vehicleId: check.vehicleId,
+        date: check.date,
+        odometer: check.odometer
+      })
+    })
+    
     const res = NextResponse.json(checks)
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     res.headers.set('Pragma', 'no-cache')

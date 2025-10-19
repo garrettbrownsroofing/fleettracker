@@ -32,9 +32,7 @@ function ReportsPageContent() {
 
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
-    console.log('Reports page - Authentication state:', { isAuthenticated, role, user })
     if (isAuthenticated === false) {
-      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
   }, [isAuthenticated, role, user, router])
@@ -60,6 +58,8 @@ function ReportsPageContent() {
             weeklyChecks: weeklyChecksData.length
           })
           console.log('📋 Weekly checks data:', weeklyChecksData)
+          console.log('📊 Odometer logs data:', odologsData)
+          
           setVehicles(vehiclesData)
           setMaintenance(maintenanceData)
           setOdoLogs(odologsData)
@@ -85,6 +85,34 @@ function ReportsPageContent() {
     return null
   }
 
+  // Pre-compute weekly checks by vehicle for better performance
+  const weeklyChecksByVehicle = useMemo(() => {
+    const map = new Map<string, WeeklyCheck[]>()
+    weeklyChecks.forEach(check => {
+      if (!map.has(check.vehicleId)) {
+        map.set(check.vehicleId, [])
+      }
+      map.get(check.vehicleId)!.push(check)
+    })
+    // Sort each vehicle's checks by date (newest first)
+    map.forEach(checks => {
+      checks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    })
+    return map
+  }, [weeklyChecks])
+
+  // Pre-compute assignments by vehicle for better performance
+  const assignmentsByVehicle = useMemo(() => {
+    const map = new Map<string, Assignment[]>()
+    assignments.forEach(assignment => {
+      if (!map.has(assignment.vehicleId)) {
+        map.set(assignment.vehicleId, [])
+      }
+      map.get(assignment.vehicleId)!.push(assignment)
+    })
+    return map
+  }, [assignments])
+
   const vehicleStatuses = useMemo((): VehicleStatus[] => {
     // Filter vehicles based on user role
     const visibleVehicles = role === 'admin' 
@@ -96,17 +124,22 @@ function ReportsPageContent() {
         )
 
     return visibleVehicles.map(vehicle => {
-      console.log('🔍 Computing status for vehicle:', vehicle.id, vehicle.label)
-      const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250, weeklyChecks)
-      const currentOdometer = computeLatestOdometer(vehicle.id, odologs, maintenance, vehicles, weeklyChecks)
-      console.log('📊 Vehicle odometer calculation:', {
-        vehicleId: vehicle.id,
-        vehicleLabel: vehicle.label,
-        currentOdometer,
-        weeklyChecksForVehicle: weeklyChecks.filter(w => w.vehicleId === vehicle.id)
+      // Debug logging for weekly checks integration
+      const vehicleWeeklyChecks = weeklyChecksByVehicle.get(vehicle.id) || []
+      const vehicleOdometerLogs = odologs.filter(log => log.vehicleId === vehicle.id)
+      
+      console.log(`🔍 Vehicle ${vehicle.label} (${vehicle.id}):`, {
+        weeklyChecks: vehicleWeeklyChecks.length,
+        odometerLogs: vehicleOdometerLogs.length,
+        weeklyCheckOdometers: vehicleWeeklyChecks.map(wc => ({ date: wc.date, odometer: wc.odometer })),
+        odometerLogOdometers: vehicleOdometerLogs.map(ol => ({ date: ol.date, odometer: ol.odometer }))
       })
       
-      const assignedDrivers = assignments.filter(a => a.vehicleId === vehicle.id)
+      const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250, weeklyChecks)
+      const currentOdometer = computeLatestOdometer(vehicle.id, odologs, maintenance, vehicles, weeklyChecks)
+      const assignedDrivers = assignmentsByVehicle.get(vehicle.id) || []
+      
+      console.log(`📊 Vehicle ${vehicle.label} calculated odometer:`, currentOdometer)
       
       // Determine overall status based on service statuses
       const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
@@ -121,7 +154,7 @@ function ReportsPageContent() {
         assignedDrivers
       }
     })
-  }, [vehicles, odologs, maintenance, assignments, role, user, weeklyChecks])
+  }, [vehicles, odologs, maintenance, assignmentsByVehicle, role, user, weeklyChecks])
 
   // Aggregate service-level counts across visible vehicles
   const serviceCounts = useMemo(() => {
@@ -418,17 +451,20 @@ function ReportsPageContent() {
                       </div>
 
                       {(() => {
-                        console.log('🔍 Filtering weekly checks for vehicle:', vehicleStatus.vehicle.id)
-                        console.log('📋 All weekly checks:', weeklyChecks)
-                        const vehicleWeeklyChecks = weeklyChecks
-                          .filter(check => check.vehicleId === vehicleStatus.vehicle.id)
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        console.log('🚗 Vehicle-specific weekly checks:', vehicleWeeklyChecks)
-                        
+                        const vehicleWeeklyChecks = weeklyChecksByVehicle.get(vehicleStatus.vehicle.id) || []
                         const recentChecks = vehicleWeeklyChecks.slice(0, 1)
                         const allChecks = expandedWeeklyChecks.has(vehicleStatus.vehicle.id) 
                           ? vehicleWeeklyChecks 
                           : recentChecks
+
+                        console.log(`🔍 Weekly checks rendering for vehicle ${vehicleStatus.vehicle.label}:`, {
+                          vehicleId: vehicleStatus.vehicle.id,
+                          weeklyChecksByVehicleSize: weeklyChecksByVehicle.size,
+                          vehicleWeeklyChecks: vehicleWeeklyChecks.length,
+                          allWeeklyChecks: weeklyChecks.length,
+                          expandedWeeklyChecks: expandedWeeklyChecks.has(vehicleStatus.vehicle.id),
+                          allChecks: allChecks.length
+                        })
 
                         if (vehicleWeeklyChecks.length === 0) {
                           return (
@@ -437,6 +473,9 @@ function ReportsPageContent() {
                                 <span className="text-xl">📋</span>
                               </div>
                               <p className="text-gray-400 text-sm">No weekly check-ins recorded</p>
+                              <p className="text-gray-500 text-xs mt-2">
+                                Debug: Vehicle ID {vehicleStatus.vehicle.id} | Total weekly checks: {weeklyChecks.length}
+                              </p>
                             </div>
                           )
                         }
