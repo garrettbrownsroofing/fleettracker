@@ -577,18 +577,25 @@ export const weeklyCheckService = {
     try {
       if (getDatabaseType() === 'firestore') {
         console.log('🔍 weeklyCheckService.getAll - Using Firestore')
+        console.log('🔍 Firestore collection: weekly_checks')
         const result = await firestoreService.read<WeeklyCheck>('weekly_checks')
         console.log('✅ Firestore weekly checks result:', result.length, 'items')
+        console.log('🔍 Firestore result details:', result)
         return result
       } else {
         console.log('🔍 weeklyCheckService.getAll - Using simple storage')
         // Fallback to simple storage
         const result = await storage.load('weekly_checks')
         console.log('✅ Simple storage weekly checks result:', result.length, 'items')
+        console.log('🔍 Simple storage result details:', result)
         return result
       }
     } catch (error) {
       console.error('❌ Error in weeklyCheckService.getAll, falling back to simple storage:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       const result = await storage.load('weekly_checks')
       console.log('✅ Fallback weekly checks result:', result.length, 'items')
       return result
