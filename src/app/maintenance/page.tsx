@@ -14,7 +14,7 @@ const MAINTENANCE_TYPES = [
   'Oil Change',
   'Tire Rotation',
   'Brake Inspection/Service',
-  'Engine Tune Up',
+  'Major Inspection/Tune Up',
   'Fluid Check',
   'Filter Replacement',
   'Other'
