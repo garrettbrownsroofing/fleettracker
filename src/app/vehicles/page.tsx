@@ -1,12 +1,12 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import type { Vehicle } from '@/types/fleet'
+import type { Vehicle, Assignment, OdometerLog, MaintenanceRecord } from '@/types/fleet'
 import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/storage'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
-import type { Assignment } from '@/types/fleet'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { computeServiceStatuses } from '@/lib/service'
 
 const STORAGE_KEY = 'bft:vehicles'
 
@@ -24,7 +24,8 @@ function VehiclesPageContent() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
   const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
   const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([])
+  const [maintenanceRecords, setMaintenanceRecords] = useState<MaintenanceRecord[]>([])
+  const [odometerLogs, setOdometerLogs] = useState<OdometerLog[]>([])
   const [loading, setLoading] = useState(true)
 
   const visibleVehicles = useMemo(() => {
@@ -37,10 +38,16 @@ function VehiclesPageContent() {
   const totalCount = useMemo(() => visibleVehicles.length, [visibleVehicles])
   
   const maintenanceDueCount = useMemo(() => {
-    // For now, return 0 since we don't have maintenance records loaded
-    // This will be calculated properly when we implement maintenance tracking
-    return 0
-  }, [maintenanceRecords])
+    let overdueCount = 0
+    for (const vehicle of visibleVehicles) {
+      const serviceStatuses = computeServiceStatuses(vehicle.id, odometerLogs, maintenanceRecords, vehicles, 250)
+      const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
+      if (hasOverdue) {
+        overdueCount++
+      }
+    }
+    return overdueCount
+  }, [visibleVehicles, odometerLogs, maintenanceRecords, vehicles])
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -57,20 +64,23 @@ function VehiclesPageContent() {
       async function loadData() {
         try {
           setLoading(true)
-          const [vehiclesData, assignmentsData, maintenanceData] = await Promise.all([
+          const [vehiclesData, assignmentsData, maintenanceData, odometerData] = await Promise.all([
             apiGet<Vehicle[]>('/api/vehicles'),
             apiGet<Assignment[]>('/api/assignments'),
-            apiGet<any[]>('/api/maintenance')
+            apiGet<MaintenanceRecord[]>('/api/maintenance'),
+            apiGet<OdometerLog[]>('/api/odometer-logs')
           ])
           setVehicles(vehiclesData)
           setAssignments(assignmentsData)
           setMaintenanceRecords(maintenanceData)
+          setOdometerLogs(odometerData)
         } catch (error) {
           console.error('Failed to load data:', error)
           // Fallback to localStorage if API fails
           setVehicles(readJson<Vehicle[]>(STORAGE_KEY, []))
           setAssignments(readJson<Assignment[]>('bft:assignments', []))
-          setMaintenanceRecords(readJson<any[]>('bft:maintenance', []))
+          setMaintenanceRecords(readJson<MaintenanceRecord[]>('bft:maintenance', []))
+          setOdometerLogs(readJson<OdometerLog[]>('bft:odologs', []))
         } finally {
           setLoading(false)
         }
