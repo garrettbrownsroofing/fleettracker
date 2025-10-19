@@ -57,13 +57,6 @@ function ReportsPageContent() {
           setOdoLogs(odologsData)
           setAssignments(assignmentsData)
           setWeeklyChecks(weeklyChecksData)
-          
-          // Debug logging
-          console.log('📊 Reports page data loaded:')
-          console.log('  Vehicles:', vehiclesData.length)
-          console.log('  Odometer logs:', odologsData.length)
-          console.log('  Weekly checks:', weeklyChecksData.length)
-          console.log('  Weekly checks data:', weeklyChecksData)
         } catch (error) {
           console.error('Failed to load data:', error)
           // Fallback to localStorage if API fails

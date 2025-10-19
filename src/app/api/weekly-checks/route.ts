@@ -33,9 +33,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Create the weekly check
-    console.log('📋 Creating weekly check:', check.id, 'for vehicle:', check.vehicleId, 'odometer:', check.odometer)
     const createdCheck = await weeklyCheckService.create(check)
-    console.log('✅ Weekly check created:', createdCheck.id)
     
     // Also create an odometer log entry to sync the reading for service calculations
     const odometerLog: OdometerLog = {
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
     
     try {
       await odometerLogService.create(odometerLog)
-      console.log('✅ Created odometer log for weekly check:', odometerLog.id, 'odometer:', odometerLog.odometer)
     } catch (odometerError) {
       console.error('⚠️ Failed to create odometer log, but weekly check was created:', odometerError)
       // Don't fail the entire request if odometer log creation fails
