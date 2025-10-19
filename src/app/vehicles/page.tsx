@@ -15,35 +15,8 @@ function generateId(): string {
 }
 
 function VehiclesPageContent() {
-  let sessionData
-  try {
-    sessionData = useSession()
-  } catch (error) {
-    console.error('Error getting session data:', error)
-    return (
-      <main className="min-h-screen gradient-bg">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">⚠️</span>
-              </div>
-              <h3 className="text-lg font-medium text-white mb-2">Session Error</h3>
-              <p className="text-gray-400">Unable to load session data</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="btn-primary mt-4"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
-  
-  const { role, user, isAuthenticated } = sessionData
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
+  const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
@@ -52,6 +25,15 @@ function VehiclesPageContent() {
   const [editVehicle, setEditVehicle] = useState<Partial<Vehicle>>({})
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
+
+  const visibleVehicles = useMemo(() => {
+    if (role === 'admin') return vehicles
+    if (!user) return []
+    const assignedVehicleIds = new Set(assignments.filter(a => a.driverId === user.id).map(a => a.vehicleId))
+    return vehicles.filter(v => assignedVehicleIds.has(v.id))
+  }, [vehicles, role, user, assignments])
+
+  const totalCount = useMemo(() => visibleVehicles.length, [visibleVehicles])
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -84,15 +66,6 @@ function VehiclesPageContent() {
   if (isAuthenticated === false) {
     return null
   }
-
-  const visibleVehicles = useMemo(() => {
-    if (role === 'admin') return vehicles
-    if (!user) return []
-    const assignedVehicleIds = new Set(assignments.filter(a => a.driverId === user.id).map(a => a.vehicleId))
-    return vehicles.filter(v => assignedVehicleIds.has(v.id))
-  }, [vehicles, role, user, assignments])
-
-  const totalCount = useMemo(() => visibleVehicles.length, [visibleVehicles])
 
   // Load data from API on component mount
   useEffect(() => {
