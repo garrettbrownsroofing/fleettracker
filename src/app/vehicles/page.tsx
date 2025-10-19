@@ -16,8 +16,34 @@ function generateId(): string {
 export default function VehiclesPage() {
   const { role, user, isAuthenticated } = useSession()
   const router = useRouter()
-  if (!isAuthenticated) {
-    router.replace('/login')
+  
+  // Wait for session to be hydrated before redirecting
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+  
+  // Show loading while session is hydrating
+  if (isAuthenticated === null) {
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <span className="text-2xl">🛻</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Loading...</h3>
+              <p className="text-gray-400">Checking authentication</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+  
+  if (isAuthenticated === false) {
     return null
   }
   const [vehicles, setVehicles] = useState<Vehicle[]>([])

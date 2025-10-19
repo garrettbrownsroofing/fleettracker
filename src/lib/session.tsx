@@ -13,7 +13,7 @@ export type SessionUser = {
 type SessionState = {
   role: Role
   user: SessionUser | null
-  isAuthenticated: boolean
+  isAuthenticated: boolean | null
   login: (username: string, password: string) => { ok: boolean; error?: string }
   logout: () => void
 }
@@ -27,7 +27,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
 
-  const isAuthenticated = !!user
+  // Don't consider authenticated until hydrated to prevent flash redirects
+  const isAuthenticated = isHydrated ? !!user : null
 
   // Load session data after hydration
   useEffect(() => {
