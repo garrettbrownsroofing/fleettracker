@@ -10,6 +10,24 @@ import { useRouter } from 'next/navigation'
 const STORAGE_MAINT = 'bft:maintenance'
 const STORAGE_VEHICLES = 'bft:vehicles'
 
+const MAINTENANCE_TYPES = [
+  'Oil Change',
+  'Tire Rotation',
+  'Brake Service',
+  'Engine Tune-up',
+  'Transmission Service',
+  'Coolant Flush',
+  'Air Filter Replacement',
+  'Battery Replacement',
+  'Alternator Service',
+  'Starter Service',
+  'Suspension Service',
+  'Exhaust System Repair',
+  'AC Service',
+  'Wheel Alignment',
+  'Other'
+]
+
 function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
@@ -46,7 +64,7 @@ function MaintenancePageContent() {
   const [isAddRecordExpanded, setIsAddRecordExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const [form, setForm] = useState<Partial<MaintenanceRecord> & { receiptFiles: File[] }>({ 
+  const [form, setForm] = useState<Partial<MaintenanceRecord> & { receiptFiles: File[], customServiceType?: string }>({ 
     date: new Date().toISOString().slice(0,10),
     receiptFiles: []
   })
@@ -133,12 +151,16 @@ function MaintenancePageContent() {
       }
     }
     
+    const serviceType = form.type === 'Other' && form.customServiceType 
+      ? form.customServiceType.trim() 
+      : form.type?.trim()
+
     const rec: MaintenanceRecord = {
       id: generateId(),
       vehicleId,
       date,
       odometer: form.odometer ? Number(form.odometer) : undefined,
-      type: form.type?.trim() || undefined,
+      type: serviceType || undefined,
       costCents: form.costCents ? Number(form.costCents) : undefined,
       vendor: form.vendor?.trim() || undefined,
       notes: form.notes?.trim() || undefined,
@@ -343,12 +365,24 @@ function MaintenancePageContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Service Type</label>
-                    <input
+                    <select
                       className="modern-input w-full"
-                      placeholder="Oil Change, Tire Rotation, etc."
                       value={form.type || ''}
-                      onChange={e => setForm(v => ({ ...v, type: e.target.value }))}
-                    />
+                      onChange={e => setForm(v => ({ ...v, type: e.target.value, customServiceType: '' }))}
+                    >
+                      <option value="">Select service type</option>
+                      {MAINTENANCE_TYPES.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    {form.type === 'Other' && (
+                      <input
+                        className="modern-input w-full mt-2"
+                        placeholder="Enter custom service type"
+                        value={form.customServiceType || ''}
+                        onChange={e => setForm(v => ({ ...v, customServiceType: e.target.value }))}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Cost (USD)</label>
