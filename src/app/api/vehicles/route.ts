@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Vehicle } from '@/types/fleet'
 import { vehicleService } from '@/lib/db-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const vehicles = await vehicleService.getAll()
-    return NextResponse.json(vehicles)
+    const res = NextResponse.json(vehicles)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    return res
   } catch (error) {
     console.error('Error fetching vehicles:', error)
     return NextResponse.json({ error: 'Failed to read vehicles' }, { status: 500 })
@@ -14,10 +21,6 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const role = request.cookies.get('bft_role')?.value
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     const vehicle: Vehicle = await request.json()
     const createdVehicle = await vehicleService.create(vehicle)
     return NextResponse.json(createdVehicle)
@@ -29,10 +32,6 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const role = request.cookies.get('bft_role')?.value
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     const vehicle: Vehicle = await request.json()
     const updatedVehicle = await vehicleService.update(vehicle.id, vehicle)
     return NextResponse.json(updatedVehicle)
@@ -44,10 +43,6 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const role = request.cookies.get('bft_role')?.value
-    if (role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     

@@ -61,14 +61,19 @@ export function writeJson<T>(key: string, value: T): void {
 
 // API service functions
 export async function apiGet<T>(endpoint: string): Promise<T> {
-  const response = await fetch(endpoint)
+  console.log('🌐 API GET:', endpoint)
+  const response = await fetch(endpoint, { cache: 'no-store' })
   if (!response.ok) {
+    console.error('❌ API GET failed:', endpoint, response.statusText)
     throw new Error(`Failed to fetch ${endpoint}: ${response.statusText}`)
   }
-  return response.json()
+  const data = await response.json()
+  console.log('✅ API GET success:', endpoint, Array.isArray(data) ? `${data.length} items` : 'single item')
+  return data
 }
 
 export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
+  console.log('🌐 API POST:', endpoint, data)
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -77,12 +82,16 @@ export async function apiPost<T>(endpoint: string, data: T): Promise<T> {
     body: JSON.stringify(data),
   })
   if (!response.ok) {
+    console.error('❌ API POST failed:', endpoint, response.statusText)
     throw new Error(`Failed to post to ${endpoint}: ${response.statusText}`)
   }
-  return response.json()
+  const result = await response.json()
+  console.log('✅ API POST success:', endpoint, result)
+  return result
 }
 
 export async function apiPut<T>(endpoint: string, data: T): Promise<T> {
+  console.log('🌐 API PUT:', endpoint, data)
   const response = await fetch(endpoint, {
     method: 'PUT',
     headers: {
@@ -91,18 +100,24 @@ export async function apiPut<T>(endpoint: string, data: T): Promise<T> {
     body: JSON.stringify(data),
   })
   if (!response.ok) {
+    console.error('❌ API PUT failed:', endpoint, response.statusText)
     throw new Error(`Failed to put to ${endpoint}: ${response.statusText}`)
   }
-  return response.json()
+  const result = await response.json()
+  console.log('✅ API PUT success:', endpoint, result)
+  return result
 }
 
 export async function apiDelete(endpoint: string, id: string): Promise<void> {
+  console.log('🌐 API DELETE:', endpoint, id)
   const response = await fetch(`${endpoint}?id=${id}`, {
     method: 'DELETE',
   })
   if (!response.ok) {
+    console.error('❌ API DELETE failed:', endpoint, response.statusText)
     throw new Error(`Failed to delete from ${endpoint}: ${response.statusText}`)
   }
+  console.log('✅ API DELETE success:', endpoint, id)
 }
 
 
