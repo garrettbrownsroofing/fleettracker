@@ -6,6 +6,7 @@ import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/s
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 import type { Assignment } from '@/types/fleet'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 const STORAGE_KEY = 'bft:vehicles'
 
@@ -13,8 +14,36 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export default function VehiclesPage() {
-  const { role, user, isAuthenticated } = useSession()
+function VehiclesPageContent() {
+  let sessionData
+  try {
+    sessionData = useSession()
+  } catch (error) {
+    console.error('Error getting session data:', error)
+    return (
+      <main className="min-h-screen gradient-bg">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Session Error</h3>
+              <p className="text-gray-400">Unable to load session data</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="btn-primary mt-4"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+  
+  const { role, user, isAuthenticated } = sessionData
   const router = useRouter()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({ label: '', plate: '', vin: '' })
@@ -546,6 +575,14 @@ export default function VehiclesPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+export default function VehiclesPage() {
+  return (
+    <ErrorBoundary>
+      <VehiclesPageContent />
+    </ErrorBoundary>
   )
 }
 

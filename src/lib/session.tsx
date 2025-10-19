@@ -127,9 +127,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useSession(): SessionState {
-  const ctx = useContext(SessionContext)
-  if (!ctx) throw new Error('useSession must be used within SessionProvider')
-  return ctx
+  try {
+    const ctx = useContext(SessionContext)
+    if (!ctx) {
+      console.error('useSession called outside of SessionProvider')
+      throw new Error('useSession must be used within SessionProvider')
+    }
+    return ctx
+  } catch (error) {
+    console.error('Error in useSession hook:', error)
+    throw error
+  }
 }
 
 
