@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { OdometerLog } from '@/types/fleet'
 import { odometerLogService } from '@/lib/db-service'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const logs = await odometerLogService.getAll()
-    return NextResponse.json(logs)
+    const res = NextResponse.json(logs)
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+    return res
   } catch (error) {
     console.error('Error fetching odometer logs:', error)
     return NextResponse.json({ error: 'Failed to read odometer logs' }, { status: 500 })
