@@ -37,7 +37,7 @@ export async function getDocuments(collection: string) {
     }
     
     const result = await response.json()
-    return result.documents?.map(doc => convertFromFirestoreFields(doc)) || []
+    return result.documents?.map((doc: any) => convertFromFirestoreFields(doc)) || []
   } catch (error) {
     console.error('Error getting documents:', error)
     return []
