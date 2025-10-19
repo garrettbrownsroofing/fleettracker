@@ -96,8 +96,15 @@ function ReportsPageContent() {
         )
 
     return visibleVehicles.map(vehicle => {
+      console.log('🔍 Computing status for vehicle:', vehicle.id, vehicle.label)
       const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250, weeklyChecks)
       const currentOdometer = computeLatestOdometer(vehicle.id, odologs, maintenance, vehicles, weeklyChecks)
+      console.log('📊 Vehicle odometer calculation:', {
+        vehicleId: vehicle.id,
+        vehicleLabel: vehicle.label,
+        currentOdometer,
+        weeklyChecksForVehicle: weeklyChecks.filter(w => w.vehicleId === vehicle.id)
+      })
       
       const assignedDrivers = assignments.filter(a => a.vehicleId === vehicle.id)
       
@@ -411,9 +418,12 @@ function ReportsPageContent() {
                       </div>
 
                       {(() => {
+                        console.log('🔍 Filtering weekly checks for vehicle:', vehicleStatus.vehicle.id)
+                        console.log('📋 All weekly checks:', weeklyChecks)
                         const vehicleWeeklyChecks = weeklyChecks
                           .filter(check => check.vehicleId === vehicleStatus.vehicle.id)
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        console.log('🚗 Vehicle-specific weekly checks:', vehicleWeeklyChecks)
                         
                         const recentChecks = vehicleWeeklyChecks.slice(0, 1)
                         const allChecks = expandedWeeklyChecks.has(vehicleStatus.vehicle.id) 
