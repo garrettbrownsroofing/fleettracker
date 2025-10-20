@@ -153,7 +153,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<SessionState>(
     () => ({ role, user, isAuthenticated, login, logout }),
-    [role, user, isAuthenticated]
+    [role, user, isAuthenticated, login, logout]
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

@@ -97,12 +97,12 @@ export default function Home() {
     )
   }
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours()
     if (hour < 12) return 'Good Morning'
     if (hour < 17) return 'Good Afternoon'
     return 'Good Evening'
-  }
+  }, [])
 
   // Memoize date calculations to prevent infinite re-renders
   const thirtyDaysAgo = useMemo(() => {

@@ -163,7 +163,7 @@ function ReportsPageContent() {
         assignedDrivers
       }
     })
-  }, [vehicles, odologs, maintenance, assignmentsByVehicle, role, user, weeklyChecks, drivers])
+  }, [vehicles, odologs, maintenance, assignmentsByVehicle, role, user, weeklyChecks, weeklyChecksByVehicle])
 
   // Aggregate service-level counts across visible vehicles
   const serviceCounts = useMemo(() => {
