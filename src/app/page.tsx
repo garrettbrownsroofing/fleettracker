@@ -190,32 +190,38 @@ export default function Home() {
 
   // Role-aware quick actions
   const quickActions = useMemo(() => {
-    const baseActions = [
+    const baseActions: Array<{
+      title: string
+      description: string
+      href: '/vehicles' | '/maintenance' | '/reports' | '/weekly-check' | '/drivers'
+      icon: string
+      color: string
+    }> = [
       {
         title: 'Vehicles',
         description: 'View and manage vehicle information',
-        href: '/vehicles' as const,
+        href: '/vehicles',
         icon: '🛻',
         color: 'from-blue-500 to-cyan-500'
       },
       {
         title: 'Maintenance',
         description: 'Track repairs and service records',
-        href: '/maintenance' as const,
+        href: '/maintenance',
         icon: '🔧',
         color: 'from-orange-500 to-red-500'
       },
       {
         title: 'Reports',
         description: role === 'admin' ? 'Fleet overview and analytics' : 'My vehicle status',
-        href: '/reports' as const,
+        href: '/reports',
         icon: '📊',
         color: 'from-purple-500 to-pink-500'
       },
       {
         title: 'Weekly Check',
         description: 'Submit weekly vehicle check-ins',
-        href: '/weekly-check' as const,
+        href: '/weekly-check',
         icon: '📋',
         color: 'from-green-500 to-emerald-500'
       }
@@ -226,7 +232,7 @@ export default function Home() {
       baseActions.splice(1, 0, {
         title: 'Drivers',
         description: 'Manage drivers and assignments',
-        href: '/drivers' as const,
+        href: '/drivers',
         icon: '👷',
         color: 'from-green-500 to-emerald-500'
       })
