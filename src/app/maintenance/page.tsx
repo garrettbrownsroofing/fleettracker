@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import type { MaintenanceRecord, Vehicle, Assignment } from '@/types/fleet'
-import { readJson, writeJson, apiGet, apiPost, apiDelete } from '@/lib/storage'
+import { readJson, writeJson, apiGet, apiPost, apiPut, apiDelete } from '@/lib/storage'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
@@ -91,6 +91,7 @@ function MaintenancePageContent() {
   const [records, setRecords] = useState<MaintenanceRecord[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
   const [isAddRecordExpanded, setIsAddRecordExpanded] = useState(false)
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [form, setForm] = useState<Partial<MaintenanceRecord> & { receiptFiles: File[], customServiceType?: string }>({ 
@@ -244,6 +245,73 @@ function MaintenancePageContent() {
     }
   }
 
+  async function updateRecord() {
+    const vehicleId = form.vehicleId?.trim()
+    const date = (form.date || '').trim()
+    if (!vehicleId || !date || !editingRecordId) return
+    
+    // Convert receipt files to data URLs with compression
+    const receiptImages: string[] = []
+    for (const file of form.receiptFiles || []) {
+      try {
+        const dataUrl = await fileToDataUrl(file)
+        receiptImages.push(dataUrl)
+      } catch (error) {
+        console.error('Failed to convert file to data URL:', error)
+      }
+    }
+    
+    const serviceType = form.type === 'Other' && form.customServiceType 
+      ? form.customServiceType.trim() 
+      : form.type?.trim()
+
+    const rec: MaintenanceRecord = {
+      id: editingRecordId,
+      vehicleId,
+      date,
+      odometer: form.odometer ? Number(form.odometer) : undefined,
+      type: serviceType || undefined,
+      costCents: form.costCents ? Number(form.costCents) : undefined,
+      vendor: form.vendor?.trim() || undefined,
+      notes: form.notes?.trim() || undefined,
+      receiptImages: receiptImages.length > 0 ? receiptImages : undefined,
+    }
+    
+    // Check total data size before submitting
+    const totalSize = JSON.stringify(rec).length
+    console.log('🔍 Total maintenance record size:', totalSize, 'bytes')
+    
+    if (totalSize > 900000) { // 900KB limit (leaving some buffer under 1MB)
+      console.warn('⚠️ Maintenance record size is large:', totalSize, 'bytes')
+      const sizeBreakdown = {
+        receiptImages: receiptImages.reduce((sum, img) => sum + img.length, 0),
+        otherData: totalSize - receiptImages.reduce((sum, img) => sum + img.length, 0)
+      }
+      console.log('📊 Size breakdown:', sizeBreakdown)
+      
+      // If still too large, show warning
+      if (totalSize > 1000000) {
+        alert('Receipt images are too large. Please reduce the number of photos or try again with smaller images.')
+        return
+      }
+    }
+    
+    try {
+      const updatedRecord = await apiPut<MaintenanceRecord>('/api/maintenance', rec)
+      setRecords(prev => prev.map(r => r.id === editingRecordId ? updatedRecord : r))
+      setForm({ 
+        date: new Date().toISOString().slice(0,10), 
+        receiptFiles: [],
+        vehicleId: visibleVehicles[0]?.id || ''
+      })
+      setEditingRecordId(null)
+      setIsAddRecordExpanded(false)
+    } catch (error) {
+      console.error('Failed to update maintenance record:', error)
+      alert('Failed to update maintenance record. Please check your connection and try again.')
+    }
+  }
+
   async function removeRecord(id: string) {
     try {
       await apiDelete('/api/maintenance', id)
@@ -259,6 +327,33 @@ function MaintenancePageContent() {
 
   function getVehicleLabel(vehicleId: string) {
     return vehicles.find(v => v.id === vehicleId)?.label || 'Unknown vehicle'
+  }
+
+  function startEditRecord(record: MaintenanceRecord) {
+    setForm({
+      id: record.id,
+      vehicleId: record.vehicleId,
+      date: record.date,
+      odometer: record.odometer,
+      type: record.type,
+      costCents: record.costCents,
+      vendor: record.vendor,
+      notes: record.notes,
+      receiptFiles: [],
+      customServiceType: MAINTENANCE_TYPES.includes(record.type || '') ? '' : record.type || ''
+    })
+    setEditingRecordId(record.id)
+    setIsAddRecordExpanded(true)
+  }
+
+  function cancelEdit() {
+    setEditingRecordId(null)
+    setForm({ 
+      date: new Date().toISOString().slice(0,10), 
+      receiptFiles: [],
+      vehicleId: visibleVehicles[0]?.id || ''
+    })
+    setIsAddRecordExpanded(false)
   }
 
   // Show loading while session is hydrating
@@ -357,36 +452,40 @@ function MaintenancePageContent() {
           </div>
         </div>
 
-        {/* Add Record Form - Collapsible */}
+        {/* Add/Edit Record Form - Collapsible */}
         {isAuthenticated === true && (
           <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
             <button
-              onClick={() => setIsAddRecordExpanded(!isAddRecordExpanded)}
+              onClick={() => editingRecordId ? null : setIsAddRecordExpanded(!isAddRecordExpanded)}
               className="flex items-center justify-between w-full text-left"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingRecordId ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" : "M12 6v6m0 0v6m0-6h6m-6 0H6"} />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-white">Add Maintenance Record</h2>
+                <h2 className="text-xl font-bold text-white">
+                  {editingRecordId ? 'Edit Maintenance Record' : 'Add Maintenance Record'}
+                </h2>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">
-                  {isAddRecordExpanded ? 'Collapse' : 'Expand'}
-                </span>
-                <svg 
-                  className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                    isAddRecordExpanded ? 'rotate-180' : ''
-                  }`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              {!editingRecordId && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">
+                    {isAddRecordExpanded ? 'Collapse' : 'Expand'}
+                  </span>
+                  <svg 
+                    className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                      isAddRecordExpanded ? 'rotate-180' : ''
+                    }`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              )}
             </button>
             
             {isAddRecordExpanded && (
@@ -513,14 +612,17 @@ function MaintenancePageContent() {
                   </div>
                 </div>
                 <div className="mt-6 flex gap-3">
-                  <button onClick={addRecord} className="btn-primary">
+                  <button 
+                    onClick={editingRecordId ? updateRecord : addRecord} 
+                    className="btn-primary"
+                  >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingRecordId ? "M5 13l4 4L19 7" : "M12 6v6m0 0v6m0-6h6m-6 0H6"} />
                     </svg>
-                    Add Record
+                    {editingRecordId ? 'Update Record' : 'Add Record'}
                   </button>
                   <button 
-                    onClick={() => setIsAddRecordExpanded(false)} 
+                    onClick={editingRecordId ? cancelEdit : () => setIsAddRecordExpanded(false)} 
                     className="btn-secondary"
                   >
                     Cancel
@@ -648,15 +750,26 @@ function MaintenancePageContent() {
                     </div>
                   </div>
                   {role === 'admin' && (
-                    <button 
-                      onClick={() => removeRecord(record.id)} 
-                      className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
-                      title="Delete Record"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => startEditRecord(record)} 
+                        className="btn-secondary text-blue-400 hover:text-blue-300 hover:border-blue-400"
+                        title="Edit Record"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button 
+                        onClick={() => removeRecord(record.id)} 
+                        className="btn-secondary text-red-400 hover:text-red-300 hover:border-red-400"
+                        title="Delete Record"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
