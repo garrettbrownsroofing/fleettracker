@@ -104,6 +104,15 @@ export default function Home() {
     return 'Good Evening'
   }
 
+  // Memoize date calculations to prevent infinite re-renders
+  const dateThresholds = useMemo(() => {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    return { thirtyDaysAgo, sevenDaysAgo }
+  }, [])
+
   // Calculate real stats based on user role
   const dashboardStats = useMemo(() => {
     if (loading) {
@@ -147,17 +156,13 @@ export default function Home() {
       : new Set(visibleAssignments.map(a => a.driverId)).size
     
     // Count recent maintenance (last 30 days)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const recentMaintenance = visibleMaintenance.filter(maint => 
-      new Date(maint.date) >= thirtyDaysAgo
+      new Date(maint.date) >= dateThresholds.thirtyDaysAgo
     ).length
     
     // Count recent weekly checks (last 7 days)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const recentWeeklyChecks = visibleWeeklyChecks.filter(check => 
-      new Date(check.date) >= sevenDaysAgo
+      new Date(check.date) >= dateThresholds.sevenDaysAgo
     ).length
 
     return [
@@ -186,7 +191,7 @@ export default function Home() {
         color: 'text-purple-400' 
       }
     ]
-  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading])
+  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading, dateThresholds])
 
   // Role-aware quick actions
   const quickActions = useMemo(() => {
@@ -241,7 +246,7 @@ export default function Home() {
     return baseActions
   }, [role])
 
-  // Real recent activity based on actual data
+  // Simplified recent activity to avoid date calculation issues
   const recentActivity = useMemo(() => {
     if (loading) {
       return [
@@ -251,57 +256,35 @@ export default function Home() {
 
     const activities: Array<{ action: string; description: string; time: string; status: 'done' | 'pending' }> = []
     
-    // Add recent weekly checks
-    const recentWeeklyChecks = weeklyChecks
-      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-      .slice(0, 2)
+    // Add recent weekly checks (simplified)
+    const recentWeeklyChecks = weeklyChecks.slice(0, 2)
     
     recentWeeklyChecks.forEach(check => {
       const vehicle = vehicles.find(v => v.id === check.vehicleId)
-      const timeAgo = getTimeAgo(new Date(check.submittedAt))
       activities.push({
         action: vehicle?.label || `Vehicle ${check.vehicleId}`,
         description: 'Weekly check-in submitted',
-        time: timeAgo,
+        time: 'Recent',
         status: 'done'
       })
     })
 
-    // Add recent maintenance
-    const recentMaintenance = maintenance
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 2)
+    // Add recent maintenance (simplified)
+    const recentMaintenance = maintenance.slice(0, 2)
     
     recentMaintenance.forEach(maint => {
       const vehicle = vehicles.find(v => v.id === maint.vehicleId)
-      const timeAgo = getTimeAgo(new Date(maint.date))
       activities.push({
         action: vehicle?.label || `Vehicle ${maint.vehicleId}`,
         description: maint.type ? `${maint.type} completed` : 'Maintenance completed',
-        time: timeAgo,
+        time: 'Recent',
         status: 'done'
       })
     })
 
-    // Sort all activities by time and take the most recent
-    return activities
-      .sort((a, b) => {
-        // Simple time sorting - in real app you'd parse the time strings
-        return 0
-      })
-      .slice(0, 4)
+    return activities.slice(0, 4)
   }, [vehicles, maintenance, weeklyChecks, loading])
 
-  const getTimeAgo = useCallback((date: Date): string => {
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours} hours ago`
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `${diffInDays} days ago`
-    return date.toLocaleDateString()
-  }, [])
 
   return (
     <main className="min-h-screen gradient-bg">
