@@ -148,14 +148,9 @@ export default function Header() {
               
               {/* Notification Dropdown */}
               {isNotificationOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1rem)] bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 mx-2 sm:mx-0"
-                     style={{ 
-                       right: '0',
-                       maxWidth: 'calc(100vw - 1rem)',
-                       minWidth: '280px',
-                       transform: 'translateX(0)',
-                       left: 'auto'
-                     }}>
+                <div
+                  className="absolute top-full mt-2 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 mx-2 sm:mx-0 w-[92vw] sm:w-80 left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 right-auto sm:right-0 max-w-[92vw] sm:max-w-none"
+                >
                   <div className="p-4 border-b border-gray-700">
                     <div className="flex items-center justify-between">
                       <div>
