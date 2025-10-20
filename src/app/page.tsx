@@ -117,8 +117,8 @@ export default function Home() {
     return date
   }, [])
 
-  // Calculate real stats based on user role
-  const dashboardStats = useMemo(() => {
+  // Calculate real stats based on user role - simplified without useMemo
+  const getDashboardStats = () => {
     if (loading) {
       return [
         { label: 'Loading...', value: '...', change: 'Fetching data', color: 'text-gray-400' },
@@ -195,10 +195,12 @@ export default function Home() {
         color: 'text-purple-400' 
       }
     ]
-  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading, thirtyDaysAgo, sevenDaysAgo])
+  }
 
-  // Role-aware quick actions
-  const quickActions = useMemo(() => {
+  const dashboardStats = getDashboardStats()
+
+  // Role-aware quick actions - simplified without useMemo
+  const getQuickActions = () => {
     const baseActions: Array<{
       title: string
       description: string
@@ -248,10 +250,12 @@ export default function Home() {
     }
 
     return baseActions
-  }, [role])
+  }
 
-  // Simplified recent activity to avoid date calculation issues
-  const recentActivity = useMemo(() => {
+  const quickActions = getQuickActions()
+
+  // Simplified recent activity - without useMemo
+  const getRecentActivity = () => {
     if (loading) {
       return [
         { action: 'Loading...', description: 'Fetching recent activity', time: '...', status: 'pending' as const }
@@ -287,7 +291,9 @@ export default function Home() {
     })
 
     return activities.slice(0, 4)
-  }, [vehicles, maintenance, weeklyChecks, loading])
+  }
+
+  const recentActivity = getRecentActivity()
 
 
   return (
