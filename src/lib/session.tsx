@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { readJson, writeJson, apiGet } from '@/lib/storage'
 
@@ -82,7 +82,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return name.trim().toLowerCase().replace(/\s+/g, '-')
   }
 
-  async function login(username: string, password: string): Promise<{ ok: boolean; error?: string }> {
+  const login = useCallback(async (username: string, password: string): Promise<{ ok: boolean; error?: string }> => {
     const trimmed = username.trim()
     if (!trimmed) return { ok: false, error: 'Enter a username' }
     if (password !== 'BrownsFleet1!') return { ok: false, error: 'Invalid password' }
@@ -126,9 +126,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       console.error('Error fetching drivers for authentication:', error)
       return { ok: false, error: 'Failed to verify user. Please try again.' }
     }
-  }
+  }, [])
 
-  function logout() {
+  const logout = useCallback(() => {
     // Prevent multiple simultaneous logout calls
     if (isLoggingOut) return
     setIsLoggingOut(true)
@@ -149,7 +149,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       // Reset logout flag after a brief delay
       setTimeout(() => setIsLoggingOut(false), 100)
     }
-  }
+  }, [isLoggingOut, router])
 
   const value = useMemo<SessionState>(
     () => ({ role, user, isAuthenticated, login, logout }),

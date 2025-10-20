@@ -19,20 +19,7 @@ export default function Home() {
   const [weeklyChecks, setWeeklyChecks] = useState<WeeklyCheck[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (isAuthenticated === false) {
-      router.replace('/login')
-    }
-  }, [isAuthenticated, router])
-
-  // Load real data when authenticated
-  useEffect(() => {
-    if (isAuthenticated === true) {
-      loadDashboardData()
-    }
-  }, [isAuthenticated])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       const [vehiclesData, driversData, assignmentsData, maintenanceData, weeklyChecksData] = await Promise.all([
@@ -53,7 +40,20 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      router.replace('/login')
+    }
+  }, [isAuthenticated, router])
+
+  // Load real data when authenticated
+  useEffect(() => {
+    if (isAuthenticated === true) {
+      loadDashboardData()
+    }
+  }, [isAuthenticated, loadDashboardData])
 
   // Show loading while session is hydrating
   if (isAuthenticated === null) {
@@ -105,12 +105,16 @@ export default function Home() {
   }
 
   // Memoize date calculations to prevent infinite re-renders
-  const dateThresholds = useMemo(() => {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    return { thirtyDaysAgo, sevenDaysAgo }
+  const thirtyDaysAgo = useMemo(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 30)
+    return date
+  }, [])
+  
+  const sevenDaysAgo = useMemo(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 7)
+    return date
   }, [])
 
   // Calculate real stats based on user role
@@ -157,12 +161,12 @@ export default function Home() {
     
     // Count recent maintenance (last 30 days)
     const recentMaintenance = visibleMaintenance.filter(maint => 
-      new Date(maint.date) >= dateThresholds.thirtyDaysAgo
+      new Date(maint.date) >= thirtyDaysAgo
     ).length
     
     // Count recent weekly checks (last 7 days)
     const recentWeeklyChecks = visibleWeeklyChecks.filter(check => 
-      new Date(check.date) >= dateThresholds.sevenDaysAgo
+      new Date(check.date) >= sevenDaysAgo
     ).length
 
     return [
@@ -191,7 +195,7 @@ export default function Home() {
         color: 'text-purple-400' 
       }
     ]
-  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading, dateThresholds])
+  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading, thirtyDaysAgo, sevenDaysAgo])
 
   // Role-aware quick actions
   const quickActions = useMemo(() => {
