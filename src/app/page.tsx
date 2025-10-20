@@ -19,7 +19,7 @@ export default function Home() {
   const [weeklyChecks, setWeeklyChecks] = useState<WeeklyCheck[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadDashboardData = useCallback(async () => {
+  const loadDashboardData = async () => {
     try {
       setLoading(true)
       const [vehiclesData, driversData, assignmentsData, maintenanceData, weeklyChecksData] = await Promise.all([
@@ -40,7 +40,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
   useEffect(() => {
     if (isAuthenticated === false) {
@@ -53,7 +53,7 @@ export default function Home() {
     if (isAuthenticated === true) {
       loadDashboardData()
     }
-  }, [isAuthenticated, loadDashboardData])
+  }, [isAuthenticated])
 
   // Show loading while session is hydrating
   if (isAuthenticated === null) {
@@ -97,12 +97,12 @@ export default function Home() {
     )
   }
 
-  const getGreeting = useCallback(() => {
+  const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return 'Good Morning'
     if (hour < 17) return 'Good Afternoon'
     return 'Good Evening'
-  }, [])
+  }
 
   // Memoize date calculations to prevent infinite re-renders
   const thirtyDaysAgo = useMemo(() => {
