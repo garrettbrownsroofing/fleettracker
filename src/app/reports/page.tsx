@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useSession } from '@/lib/session'
 import { readJson, apiGet } from '@/lib/storage'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -180,6 +181,40 @@ function ReportsPageContent() {
     return { good, warning, overdue }
   }, [vehicleStatuses])
 
+  // Calculate overdue weekly inspections (8+ days without check)
+  const overdueWeeklyInspections = useMemo(() => {
+    const eightDaysAgo = new Date()
+    eightDaysAgo.setDate(eightDaysAgo.getDate() - 8)
+
+    return vehicleStatuses.filter(vehicleStatus => {
+      const vehicleChecks = weeklyChecksByVehicle.get(vehicleStatus.vehicle.id) || []
+      if (vehicleChecks.length === 0) return true // No checks ever
+      
+      const latestCheck = vehicleChecks.reduce((latest, check) => 
+        new Date(check.date) > new Date(latest.date) ? check : latest
+      )
+      return new Date(latestCheck.date) < eightDaysAgo
+    }).map(vehicleStatus => {
+      const vehicleChecks = weeklyChecksByVehicle.get(vehicleStatus.vehicle.id) || []
+      const latestCheck = vehicleChecks.length > 0 
+        ? vehicleChecks.reduce((latest, check) => 
+            new Date(check.date) > new Date(latest.date) ? check : latest
+          )
+        : null
+      
+      const daysOverdue = latestCheck 
+        ? Math.floor((new Date().getTime() - new Date(latestCheck.date).getTime()) / (1000 * 60 * 60 * 24))
+        : null
+
+      return {
+        vehicle: vehicleStatus.vehicle,
+        latestCheck,
+        daysOverdue,
+        assignedDrivers: vehicleStatus.assignedDrivers
+      }
+    })
+  }, [vehicleStatuses, weeklyChecksByVehicle])
+
   const toggleVehicleExpansion = (vehicleId: string) => {
     setExpandedVehicles(prev => {
       const newSet = new Set(prev)
@@ -353,6 +388,70 @@ function ReportsPageContent() {
             </div>
           </div>
         </div>
+
+        {/* Overdue Weekly Inspections Section */}
+        {overdueWeeklyInspections.length > 0 && (
+          <section className="modern-card animate-fade-in-up mb-8" style={{ animationDelay: '0.5s' }}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center">
+                <span className="text-xl">⚠️</span>
+              </div>
+              <h2 className="text-xl font-bold text-white">Overdue Weekly Inspections</h2>
+              <span className="px-3 py-1 rounded-full text-sm bg-red-600/30 text-red-300 border border-red-500/50">
+                {overdueWeeklyInspections.length} overdue
+              </span>
+            </div>
+            
+            <div className="space-y-4">
+              {overdueWeeklyInspections.map((inspection, index) => (
+                <div key={inspection.vehicle.id} className="flex items-center gap-4 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center">
+                    <span className="text-xl">⚠️</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-lg font-semibold text-white">{inspection.vehicle.label}</h3>
+                      <span className="px-2 py-1 rounded-full text-xs bg-red-600/30 text-red-300 border border-red-500/50">
+                        {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-400 mb-1">
+                      {inspection.latestCheck 
+                        ? `Last inspection: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
+                        : 'No inspections recorded'
+                      }
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {[inspection.vehicle.plate, inspection.vehicle.vin].filter(Boolean).join(' · ')}
+                    </div>
+                    {inspection.assignedDrivers.length > 0 && (
+                      <div className="text-sm text-gray-500">
+                        Assigned: {inspection.assignedDrivers.map(a => {
+                          const driver = drivers.find(d => d.id === a.driverId)
+                          return driver ? driver.name : a.driverId
+                        }).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      href="/weekly-check"
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium text-center"
+                    >
+                      Submit Check
+                    </Link>
+                    <Link
+                      href={`/reports#vehicle-${inspection.vehicle.id}`}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm font-medium text-center"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Vehicle Overview */}
         <section className="modern-card animate-fade-in-up" style={{ animationDelay: '0.5s' }}>

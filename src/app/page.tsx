@@ -116,6 +116,12 @@ export default function Home() {
     date.setDate(date.getDate() - 7)
     return date
   }
+  
+  const getEightDaysAgo = () => {
+    const date = new Date()
+    date.setDate(date.getDate() - 8)
+    return date
+  }
 
   // Calculate real stats based on user role - simplified without useMemo
   const getDashboardStats = () => {
@@ -169,6 +175,17 @@ export default function Home() {
       new Date(check.date) >= getSevenDaysAgo()
     ).length
 
+    // Calculate overdue weekly inspections (8+ days without check)
+    const overdueWeeklyInspections = visibleVehicles.filter(vehicle => {
+      const vehicleChecks = visibleWeeklyChecks.filter(check => check.vehicleId === vehicle.id)
+      if (vehicleChecks.length === 0) return true // No checks ever
+      
+      const latestCheck = vehicleChecks.reduce((latest, check) => 
+        new Date(check.date) > new Date(latest.date) ? check : latest
+      )
+      return new Date(latestCheck.date) < getEightDaysAgo()
+    }).length
+
     return [
       { 
         label: role === 'admin' ? 'Total Vehicles' : 'My Vehicles', 
@@ -189,10 +206,10 @@ export default function Home() {
         color: 'text-orange-400' 
       },
       { 
-        label: 'Weekly Checks', 
-        value: recentWeeklyChecks.toString(), 
-        change: 'Last 7 days', 
-        color: 'text-purple-400' 
+        label: 'Overdue Inspections', 
+        value: overdueWeeklyInspections.toString(), 
+        change: '8+ days overdue', 
+        color: 'text-red-400' 
       }
     ]
   }
@@ -295,6 +312,53 @@ export default function Home() {
 
   const recentActivity = getRecentActivity()
 
+  // Get overdue weekly inspections details
+  const getOverdueInspections = () => {
+    if (loading) return []
+    
+    const visibleVehicles = role === 'admin' 
+      ? vehicles 
+      : vehicles.filter(vehicle => 
+          assignments.some(assignment => 
+            assignment.vehicleId === vehicle.id && assignment.driverId === user?.id
+          )
+        )
+    
+    const visibleWeeklyChecks = role === 'admin'
+      ? weeklyChecks
+      : weeklyChecks.filter(check => 
+          visibleVehicles.some(vehicle => vehicle.id === check.vehicleId)
+        )
+
+    return visibleVehicles.filter(vehicle => {
+      const vehicleChecks = visibleWeeklyChecks.filter(check => check.vehicleId === vehicle.id)
+      if (vehicleChecks.length === 0) return true // No checks ever
+      
+      const latestCheck = vehicleChecks.reduce((latest, check) => 
+        new Date(check.date) > new Date(latest.date) ? check : latest
+      )
+      return new Date(latestCheck.date) < getEightDaysAgo()
+    }).map(vehicle => {
+      const vehicleChecks = visibleWeeklyChecks.filter(check => check.vehicleId === vehicle.id)
+      const latestCheck = vehicleChecks.length > 0 
+        ? vehicleChecks.reduce((latest, check) => 
+            new Date(check.date) > new Date(latest.date) ? check : latest
+          )
+        : null
+      
+      const daysOverdue = latestCheck 
+        ? Math.floor((new Date().getTime() - new Date(latestCheck.date).getTime()) / (1000 * 60 * 60 * 24))
+        : null
+
+      return {
+        vehicle,
+        latestCheck,
+        daysOverdue
+      }
+    })
+  }
+
+  const overdueInspections = getOverdueInspections()
 
   return (
     <main className="min-h-screen gradient-bg">
@@ -360,6 +424,52 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* Overdue Weekly Inspections Section */}
+        {overdueInspections.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-white mb-6">⚠️ Overdue Weekly Inspections</h2>
+            <div className="modern-card relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10"></div>
+              <div className="relative z-10">
+                <div className="space-y-4">
+                  {overdueInspections.map((inspection, index) => (
+                    <div key={inspection.vehicle.id} className="flex items-center gap-4 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center">
+                        <span className="text-xl">⚠️</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="text-lg font-semibold text-white">{inspection.vehicle.label}</h3>
+                          <span className="px-2 py-1 rounded-full text-xs bg-red-600/30 text-red-300 border border-red-500/50">
+                            {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          {inspection.latestCheck 
+                            ? `Last inspection: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
+                            : 'No inspections recorded'
+                          }
+                        </div>
+                        {inspection.vehicle.plate && (
+                          <div className="text-sm text-gray-500">
+                            Plate: {inspection.vehicle.plate}
+                          </div>
+                        )}
+                      </div>
+                      <Link
+                        href="/weekly-check"
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                      >
+                        Submit Check
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity Section */}
         {recentActivity.length > 0 && (
