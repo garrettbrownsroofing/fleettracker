@@ -18,9 +18,9 @@ export default function Header() {
   const navItems = [
     { href: '/vehicles' as const, label: 'Vehicles' },
     ...(isHydrated && role === 'admin' ? [
-      { href: '/drivers' as const, label: 'Drivers' },
-      { href: '/reports' as const, label: 'Reports' }
+      { href: '/drivers' as const, label: 'Drivers' }
     ] : []),
+    { href: '/reports' as const, label: 'Reports' },
     { href: '/maintenance' as const, label: 'Maintenance' },
     { href: '/weekly-check' as const, label: 'Weekly Check' }
   ]
