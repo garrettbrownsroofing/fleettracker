@@ -326,76 +326,38 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
-                {role === 'admin' ? 'Fleet Management' : 'Quick Actions'}
-              </h2>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {quickActions.map((action, index) => (
-                <Link
-                  key={index}
-                  href={action.href}
-                  className="modern-card group hover:scale-105 transition-all duration-300"
-                  style={{ animationDelay: `${(index + 4) * 0.1}s` }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center text-2xl`}>
-                      {action.icon}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-yellow-400 transition-colors">
-                        {action.title}
-                      </h3>
-                      <p className="text-gray-400 text-sm">{action.description}</p>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </Link>
-              ))}
-            </div>
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">
+              {role === 'admin' ? 'Fleet Management' : 'Quick Actions'}
+            </h2>
           </div>
-
-          {/* System Status */}
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-6">System Status</h2>
-            <div className="space-y-4">
-              <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white text-sm">System Online</div>
-                    <div className="text-gray-400 text-xs">All services operational</div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => (
+              <Link
+                key={index}
+                href={action.href}
+                className="modern-card group hover:scale-105 transition-all duration-300"
+                style={{ animationDelay: `${(index + 4) * 0.1}s` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${action.color} flex items-center justify-center text-2xl`}>
+                    {action.icon}
                   </div>
-                </div>
-              </div>
-              <div className="modern-card animate-fade-in-up" style={{ animationDelay: '0.9s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                   <div className="flex-1">
-                    <div className="font-medium text-white text-sm">Data Synced</div>
-                    <div className="text-gray-400 text-xs">Latest information loaded</div>
+                    <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-yellow-400 transition-colors">
+                      {action.title}
+                    </h3>
+                    <p className="text-gray-400 text-sm">{action.description}</p>
                   </div>
+                  <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
-              </div>
-              <div className="modern-card animate-fade-in-up" style={{ animationDelay: '1.0s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-purple-400"></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white text-sm">Role: {role === 'admin' ? 'Administrator' : 'Driver'}</div>
-                    <div className="text-gray-400 text-xs">
-                      {role === 'admin' ? 'Full fleet access' : 'Assigned vehicles only'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </Link>
+            ))}
           </div>
         </div>
 
