@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { readJson, writeJson, apiGet } from '@/lib/storage'
 
 export type Role = 'admin' | 'user'
@@ -26,6 +27,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>('user')
   const [user, setUser] = useState<SessionUser | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const router = useRouter()
 
   // Don't consider authenticated until hydrated to prevent flash redirects
   const isAuthenticated = isHydrated ? !!user : null
@@ -56,24 +59,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => { 
-    if (isHydrated) {
+    if (isHydrated && !isLoggingOut) {
       try {
         writeJson(`${STORAGE_KEY}:role`, role)
       } catch (error) {
         console.error('Error saving role:', error)
       }
     }
-  }, [role, isHydrated])
+  }, [role, isHydrated, isLoggingOut])
   
   useEffect(() => { 
-    if (isHydrated) {
+    if (isHydrated && !isLoggingOut) {
       try {
         writeJson(`${STORAGE_KEY}:user`, user)
       } catch (error) {
         console.error('Error saving user:', error)
       }
     }
-  }, [user, isHydrated])
+  }, [user, isHydrated, isLoggingOut])
 
   function normalizeIdFromName(name: string): string {
     return name.trim().toLowerCase().replace(/\s+/g, '-')
@@ -126,11 +129,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }
 
   function logout() {
-    setUser(null)
-    setRole('user')
+    // Prevent multiple simultaneous logout calls
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    
     try {
+      setUser(null)
+      setRole('user')
+      // Clear localStorage data
+      localStorage.removeItem(`${STORAGE_KEY}:user`)
+      localStorage.removeItem(`${STORAGE_KEY}:role`)
+      // Clear cookie
       document.cookie = 'bft_role=; path=/; max-age=0'
-    } catch {}
+      // Navigate to login page
+      router.push('/login')
+    } catch (error) {
+      console.error('Error during logout cleanup:', error)
+    } finally {
+      // Reset logout flag after a brief delay
+      setTimeout(() => setIsLoggingOut(false), 100)
+    }
   }
 
   const value = useMemo<SessionState>(
