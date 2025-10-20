@@ -347,30 +347,30 @@ function WeeklyCheckPageContent() {
 
         {/* Progress Indicator */}
         <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
+          <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-4">
             {['odometer', 'exterior', 'interior', 'review'].map((step, index) => (
               <div key={step} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                <div className={`${
                   currentStep === step 
                     ? 'bg-blue-500 text-white' 
                     : ['odometer', 'exterior', 'interior'].indexOf(currentStep) > index
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-600 text-gray-300'
-                }`}>
+                } rounded-full flex items-center justify-center w-7 h-7 text-xs font-medium sm:w-8 sm:h-8 sm:text-sm`}>
                   {index + 1}
                 </div>
-                <span className={`ml-2 text-sm ${
+                <span className={`${
                   currentStep === step ? 'text-white' : 'text-gray-400'
-                }`}>
+                } text-sm ml-2 hidden sm:inline`}>
                   {step === 'odometer' ? 'Odometer' : 
                    step === 'exterior' ? 'Exterior' :
                    step === 'interior' ? 'Interior' : 'Review'}
                 </span>
                 {index < 3 && (
-                  <div className={`w-8 h-0.5 ml-4 ${
+                  <div className={`${
                     ['odometer', 'exterior', 'interior'].indexOf(currentStep) > index
                       ? 'bg-green-500' : 'bg-gray-600'
-                  }`} />
+                  } h-0.5 ml-2 sm:ml-4 w-6 sm:w-8`} />
                 )}
               </div>
             ))}
