@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { apiGet } from '@/lib/storage'
 import type { Vehicle, Driver, Assignment, MaintenanceRecord, WeeklyCheck } from '@/types/fleet'
+import PWAInstallPrompt from '@/components/PWAInstallPrompt'
 
 export default function Home() {
   const { user, role, isAuthenticated } = useSession()
@@ -506,6 +507,9 @@ export default function Home() {
           </div>
         )}
       </div>
+      
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </main>
   )
 }
