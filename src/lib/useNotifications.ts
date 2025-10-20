@@ -9,7 +9,7 @@ export type NotificationItem = {
   description: string
   vehicleLabel: string
   priority: 'high' | 'medium' | 'low'
-  href: string
+  href: '/maintenance' | '/weekly-check' | '/reports'
   dismissed?: boolean
 }
 
