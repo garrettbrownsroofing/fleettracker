@@ -31,7 +31,6 @@ function ReportsPageContent() {
   const [expandedVehicles, setExpandedVehicles] = useState<Set<string>>(new Set())
   const [expandedWeeklyChecks, setExpandedWeeklyChecks] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
 
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
@@ -41,13 +40,9 @@ function ReportsPageContent() {
   }, [isAuthenticated, role, user, router])
 
   // Load data from API
-  const loadData = async (isRefresh = false) => {
+  const loadData = async () => {
     try {
-      if (isRefresh) {
-        setRefreshing(true)
-      } else {
-        setLoading(true)
-      }
+      setLoading(true)
       const [vehiclesData, maintenanceData, odologsData, assignmentsData, driversData, weeklyChecksData] = await Promise.all([
         apiGet<Vehicle[]>('/api/vehicles'),
         apiGet<MaintenanceRecord[]>('/api/maintenance'),
@@ -56,16 +51,7 @@ function ReportsPageContent() {
         apiGet<Driver[]>('/api/drivers'),
         apiGet<WeeklyCheck[]>('/api/weekly-checks')
       ])
-      console.log('📊 Reports page data loaded:', {
-        vehicles: vehiclesData.length,
-        maintenance: maintenanceData.length,
-        odologs: odologsData.length,
-        assignments: assignmentsData.length,
-        drivers: driversData.length,
-        weeklyChecks: weeklyChecksData.length
-      })
-      console.log('📋 Weekly checks data:', weeklyChecksData)
-      console.log('📊 Odometer logs data:', odologsData)
+      // Data loaded successfully
       
       setVehicles(vehiclesData)
       setMaintenance(maintenanceData)
@@ -80,7 +66,6 @@ function ReportsPageContent() {
       alert('Failed to load data from server. Please check your connection and try again.')
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 
@@ -138,18 +123,13 @@ function ReportsPageContent() {
       const vehicleWeeklyChecks = weeklyChecksByVehicle.get(vehicle.id) || []
       const vehicleOdometerLogs = odologs.filter(log => log.vehicleId === vehicle.id)
       
-      console.log(`🔍 Vehicle ${vehicle.label} (${vehicle.id}):`, {
-        weeklyChecks: vehicleWeeklyChecks.length,
-        odometerLogs: vehicleOdometerLogs.length,
-        weeklyCheckOdometers: vehicleWeeklyChecks.map(wc => ({ date: wc.date, odometer: wc.odometer })),
-        odometerLogOdometers: vehicleOdometerLogs.map(ol => ({ date: ol.date, odometer: ol.odometer }))
-      })
+      // Processing vehicle data
       
       const serviceStatuses = computeServiceStatuses(vehicle.id, odologs, maintenance, vehicles, 250, weeklyChecks)
       const currentOdometer = computeLatestOdometer(vehicle.id, odologs, maintenance, vehicles, weeklyChecks)
       const assignedDrivers = assignmentsByVehicle.get(vehicle.id) || []
       
-      console.log(`📊 Vehicle ${vehicle.label} calculated odometer:`, currentOdometer)
+      // Odometer calculated
       
       // Determine overall status based on service statuses
       const hasOverdue = serviceStatuses.some(s => s.status === 'overdue')
@@ -303,39 +283,16 @@ function ReportsPageContent() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8 animate-fade-in-up">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
-                {role === 'admin' ? 'Fleet Reports' : 'My Vehicle Status'}
-              </h1>
-              <p className="text-gray-400 text-lg">
-                {role === 'admin' 
-                  ? 'Overview of all vehicles with maintenance status and detailed information.'
-                  : 'View maintenance status and details for your assigned vehicles.'
-                }
-              </p>
-            </div>
-            <button
-              onClick={() => loadData(true)}
-              disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white rounded-lg transition-colors"
-            >
-              {refreshing ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Refresh Data
-                </>
-              )}
-            </button>
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              {role === 'admin' ? 'Fleet Reports' : 'My Vehicle Status'}
+            </h1>
+            <p className="text-gray-400 text-lg">
+              {role === 'admin' 
+                ? 'Overview of all vehicles with maintenance status and detailed information.'
+                : 'View maintenance status and details for your assigned vehicles.'
+              }
+            </p>
           </div>
         </div>
 
@@ -593,14 +550,7 @@ function ReportsPageContent() {
                           ? vehicleWeeklyChecks 
                           : recentChecks
 
-                        console.log(`🔍 Weekly checks rendering for vehicle ${vehicleStatus.vehicle.label}:`, {
-                          vehicleId: vehicleStatus.vehicle.id,
-                          weeklyChecksByVehicleSize: weeklyChecksByVehicle.size,
-                          vehicleWeeklyChecks: vehicleWeeklyChecks.length,
-                          allWeeklyChecks: weeklyChecks.length,
-                          expandedWeeklyChecks: expandedWeeklyChecks.has(vehicleStatus.vehicle.id),
-                          allChecks: allChecks.length
-                        })
+                        // Rendering weekly checks
 
                         if (vehicleWeeklyChecks.length === 0) {
                           return (
