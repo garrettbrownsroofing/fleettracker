@@ -24,7 +24,44 @@ function generateId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+// Compress image to reduce file size for Firestore
+async function compressImage(file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions maintaining aspect ratio
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+      
+      console.log(`📸 Image compressed: ${file.name} - Original: ${file.size} bytes, Compressed: ${compressedDataUrl.length} bytes`)
+      resolve(compressedDataUrl)
+    }
+    
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 async function fileToDataUrl(file: File): Promise<string> {
+  // Compress images to reduce size for Firestore
+  if (file.type.startsWith('image/')) {
+    return await compressImage(file)
+  }
+  
+  // For non-image files, use original method
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result))
@@ -132,7 +169,7 @@ function MaintenancePageContent() {
     const date = (form.date || '').trim()
     if (!vehicleId || !date) return
     
-    // Convert receipt files to data URLs
+    // Convert receipt files to data URLs with compression
     const receiptImages: string[] = []
     for (const file of form.receiptFiles || []) {
       try {
@@ -157,6 +194,25 @@ function MaintenancePageContent() {
       vendor: form.vendor?.trim() || undefined,
       notes: form.notes?.trim() || undefined,
       receiptImages: receiptImages.length > 0 ? receiptImages : undefined,
+    }
+    
+    // Check total data size before submitting
+    const totalSize = JSON.stringify(rec).length
+    console.log('🔍 Total maintenance record size:', totalSize, 'bytes')
+    
+    if (totalSize > 900000) { // 900KB limit (leaving some buffer under 1MB)
+      console.warn('⚠️ Maintenance record size is large:', totalSize, 'bytes')
+      const sizeBreakdown = {
+        receiptImages: receiptImages.reduce((sum, img) => sum + img.length, 0),
+        otherData: totalSize - receiptImages.reduce((sum, img) => sum + img.length, 0)
+      }
+      console.log('📊 Size breakdown:', sizeBreakdown)
+      
+      // If still too large, show warning
+      if (totalSize > 1000000) {
+        alert('Receipt images are too large. Please reduce the number of photos or try again with smaller images.')
+        return
+      }
     }
     
     try {
@@ -403,16 +459,41 @@ function MaintenancePageContent() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-300 mb-2">Receipt Images</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="modern-input w-full"
-                      onChange={e => setForm(v => ({ ...v, receiptFiles: Array.from(e.target.files || []) }))}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Upload receipt images for this maintenance record (optional)
-                    </p>
+                    <div className="space-y-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="modern-input w-full"
+                        onChange={e => setForm(v => ({ ...v, receiptFiles: Array.from(e.target.files || []) }))}
+                      />
+                      {form.receiptFiles && form.receiptFiles.length > 0 && (
+                        <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-5 h-5 rounded bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                              <span className="text-xs">📄</span>
+                            </div>
+                            <p className="text-sm font-medium text-green-400">
+                              Selected Files ({form.receiptFiles.length})
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            {form.receiptFiles.map((file, index) => (
+                              <div key={index} className="text-xs text-gray-400 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                                {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            💡 Images will be automatically compressed to reduce file size
+                          </p>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        Upload receipt images for this maintenance record (optional). Images will be automatically compressed.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-3">
@@ -513,20 +594,39 @@ function MaintenancePageContent() {
                         <p className="text-sm text-gray-500 mb-2">{record.notes}</p>
                       )}
                       {record.receiptImages && record.receiptImages.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs text-gray-400 mb-2">Receipt Images:</p>
-                          <div className="flex gap-2 flex-wrap">
+                        <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-6 h-6 rounded bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                              <span className="text-xs">📄</span>
+                            </div>
+                            <p className="text-sm font-medium text-green-400">
+                              Receipt Images ({record.receiptImages.length})
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {record.receiptImages.map((image, index) => (
-                              <img
-                                key={index}
-                                src={image}
-                                alt={`Receipt ${index + 1}`}
-                                className="w-16 h-16 object-cover rounded border border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => window.open(image, '_blank')}
-                                title="Click to view full size"
-                              />
+                              <div key={index} className="relative group">
+                                <img
+                                  src={image}
+                                  alt={`Receipt ${index + 1}`}
+                                  className="w-full h-20 object-cover rounded-lg border border-gray-600 cursor-pointer hover:border-green-400 transition-all duration-200 group-hover:scale-105"
+                                  onClick={() => window.open(image, '_blank')}
+                                  title="Click to view full size"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
                           </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            💡 Click any receipt to view full size
+                          </p>
                         </div>
                       )}
                     </div>
