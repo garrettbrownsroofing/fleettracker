@@ -2,7 +2,7 @@
 
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { apiGet } from '@/lib/storage'
 import type { Vehicle, Driver, Assignment, MaintenanceRecord, WeeklyCheck } from '@/types/fleet'
@@ -186,7 +186,7 @@ export default function Home() {
         color: 'text-purple-400' 
       }
     ]
-  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user, loading])
+  }, [vehicles, drivers, assignments, maintenance, weeklyChecks, role, user?.id, loading])
 
   // Role-aware quick actions
   const quickActions = useMemo(() => {
@@ -292,7 +292,7 @@ export default function Home() {
       .slice(0, 4)
   }, [vehicles, maintenance, weeklyChecks, loading])
 
-  const getTimeAgo = (date: Date): string => {
+  const getTimeAgo = useCallback((date: Date): string => {
     const now = new Date()
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
     
@@ -301,7 +301,7 @@ export default function Home() {
     const diffInDays = Math.floor(diffInHours / 24)
     if (diffInDays < 7) return `${diffInDays} days ago`
     return date.toLocaleDateString()
-  }
+  }, [])
 
   return (
     <main className="min-h-screen gradient-bg">
