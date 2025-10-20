@@ -206,7 +206,7 @@ export default function Home() {
         color: 'text-orange-400' 
       },
       { 
-        label: 'Overdue Inspections', 
+        label: 'Overdue Weekly Check In', 
         value: overdueWeeklyInspections.toString(), 
         change: '8+ days overdue', 
         color: 'text-red-400' 
@@ -425,10 +425,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Overdue Weekly Inspections Section */}
+        {/* Overdue Weekly Check In Section */}
         {overdueInspections.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-white mb-6">⚠️ Overdue Weekly Inspections</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">⚠️ Overdue Weekly Check In</h2>
             <div className="modern-card relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10"></div>
               <div className="relative z-10">
@@ -442,13 +442,13 @@ export default function Home() {
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="text-lg font-semibold text-white">{inspection.vehicle.label}</h3>
                           <span className="px-2 py-1 rounded-full text-xs bg-red-600/30 text-red-300 border border-red-500/50">
-                            {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked'}
+                            {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked in'}
                           </span>
                         </div>
                         <div className="text-sm text-gray-400">
                           {inspection.latestCheck 
-                            ? `Last inspection: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
-                            : 'No inspections recorded'
+                            ? `Last check in: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
+                            : 'No check ins recorded'
                           }
                         </div>
                         {inspection.vehicle.plate && (

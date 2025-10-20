@@ -389,14 +389,14 @@ function ReportsPageContent() {
           </div>
         </div>
 
-        {/* Overdue Weekly Inspections Section */}
+        {/* Overdue Weekly Check In Section */}
         {overdueWeeklyInspections.length > 0 && (
           <section className="modern-card animate-fade-in-up mb-8" style={{ animationDelay: '0.5s' }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center">
                 <span className="text-xl">⚠️</span>
               </div>
-              <h2 className="text-xl font-bold text-white">Overdue Weekly Inspections</h2>
+              <h2 className="text-xl font-bold text-white">Overdue Weekly Check In</h2>
               <span className="px-3 py-1 rounded-full text-sm bg-red-600/30 text-red-300 border border-red-500/50">
                 {overdueWeeklyInspections.length} overdue
               </span>
@@ -412,13 +412,13 @@ function ReportsPageContent() {
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-lg font-semibold text-white">{inspection.vehicle.label}</h3>
                       <span className="px-2 py-1 rounded-full text-xs bg-red-600/30 text-red-300 border border-red-500/50">
-                        {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked'}
+                        {inspection.daysOverdue ? `${inspection.daysOverdue} days overdue` : 'Never checked in'}
                       </span>
                     </div>
                     <div className="text-sm text-gray-400 mb-1">
                       {inspection.latestCheck 
-                        ? `Last inspection: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
-                        : 'No inspections recorded'
+                        ? `Last check in: ${new Date(inspection.latestCheck.date).toLocaleDateString()}`
+                        : 'No check ins recorded'
                       }
                     </div>
                     <div className="text-sm text-gray-500">
