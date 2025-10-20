@@ -104,7 +104,19 @@ function MaintenancePageContent() {
     return new Set(assignments.filter(a => a.driverId === user.id).map(a => a.vehicleId))
   }, [role, user, assignments, vehicles])
 
+  const visibleVehicles = useMemo(() => 
+    vehicles.filter(v => visibleVehicleIds.has(v.id)), 
+    [vehicles, visibleVehicleIds]
+  )
+
   const visibleRecords = useMemo(() => records.filter(r => visibleVehicleIds.has(r.vehicleId)), [records, visibleVehicleIds])
+
+  // Set default vehicle when visible vehicles change
+  useEffect(() => {
+    if (visibleVehicles.length > 0 && !form.vehicleId) {
+      setForm(prev => ({ ...prev, vehicleId: visibleVehicles[0].id }))
+    }
+  }, [visibleVehicles, form.vehicleId])
 
   const filteredRecords = useMemo(() => {
     if (!selectedVehicleId) return visibleRecords
@@ -218,7 +230,11 @@ function MaintenancePageContent() {
     try {
       const savedRecord = await apiPost<MaintenanceRecord>('/api/maintenance', rec)
       setRecords(prev => [savedRecord, ...prev])
-      setForm({ date: new Date().toISOString().slice(0,10), receiptFiles: [] })
+      setForm({ 
+        date: new Date().toISOString().slice(0,10), 
+        receiptFiles: [],
+        vehicleId: visibleVehicles[0]?.id || ''
+      })
       setIsAddRecordExpanded(false)
     } catch (error) {
       console.error('Failed to add maintenance record:', error)
@@ -342,7 +358,7 @@ function MaintenancePageContent() {
         </div>
 
         {/* Add Record Form - Collapsible */}
-        {role === 'admin' && (
+        {isAuthenticated === true && (
           <section className="mb-8 modern-card animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
             <button
               onClick={() => setIsAddRecordExpanded(!isAddRecordExpanded)}
@@ -384,7 +400,7 @@ function MaintenancePageContent() {
                       onChange={e => setForm(v => ({ ...v, vehicleId: e.target.value }))}
                     >
                       <option value="">Select vehicle</option>
-                      {vehicles.map(v => (
+                      {vehicles.filter(v => visibleVehicleIds.has(v.id)).map(v => (
                         <option key={v.id} value={v.id}>{v.label}</option>
                       ))}
                     </select>
