@@ -23,18 +23,105 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - serve from cache when offline, but require network for API calls
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // For API calls, always try network first and show offline message if failed
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .catch(() => {
+          // Return a response indicating offline for API calls
+          return new Response(
+            JSON.stringify({ 
+              error: 'No internet connection. Please check your connection and try again.',
+              offline: true 
+            }),
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        })
+    );
+    return;
+  }
+
+  // For static assets, try cache first, then network
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then((response) => {
-        // Return cached version or fetch from network
+        // Return cached version if available
         if (response) {
           return response;
         }
-        return fetch(event.request);
-      }
-    )
+        
+        // Otherwise fetch from network
+        return fetch(request)
+          .catch(() => {
+            // If it's a page request and we're offline, show a basic offline page
+            if (request.headers.get('accept').includes('text/html')) {
+              return new Response(
+                `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <title>Offline - Fleet Tracker</title>
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <style>
+                    body { 
+                      font-family: Arial, sans-serif; 
+                      text-align: center; 
+                      padding: 50px; 
+                      background: linear-gradient(135deg, #1a1a2e, #16213e);
+                      color: white;
+                      margin: 0;
+                      min-height: 100vh;
+                      display: flex;
+                      flex-direction: column;
+                      justify-content: center;
+                    }
+                    .offline-container {
+                      max-width: 400px;
+                      margin: 0 auto;
+                    }
+                    .icon { font-size: 4rem; margin-bottom: 1rem; }
+                    h1 { margin-bottom: 1rem; }
+                    p { color: #ccc; line-height: 1.6; }
+                    .retry-btn {
+                      background: #4CAF50;
+                      color: white;
+                      border: none;
+                      padding: 12px 24px;
+                      border-radius: 6px;
+                      font-size: 16px;
+                      cursor: pointer;
+                      margin-top: 20px;
+                    }
+                    .retry-btn:hover { background: #45a049; }
+                  </style>
+                </head>
+                <body>
+                  <div class="offline-container">
+                    <div class="icon">📡</div>
+                    <h1>No Internet Connection</h1>
+                    <p>Fleet Tracker requires an internet connection to ensure all submissions are properly saved to the server.</p>
+                    <p>Please check your connection and try again.</p>
+                    <button class="retry-btn" onclick="window.location.reload()">Try Again</button>
+                  </div>
+                </body>
+                </html>
+                `,
+                {
+                  headers: { 'Content-Type': 'text/html' }
+                }
+              );
+            }
+          });
+      })
   );
 });
 

@@ -11,16 +11,22 @@ Your Brown's Fleet Tracker app is now a Progressive Web App (PWA)! Here's what h
 - Multiple icon sizes for different devices
 
 ### 2. **Service Worker** (`/public/sw.js`)
-- Offline functionality
-- Caches important pages and resources
-- Automatic cache management
+- **Network-dependent functionality** - API calls require internet connection
+- Caches static pages and resources for faster loading
+- Shows offline message when internet is unavailable
+- Prevents data loss by requiring connection for submissions
 
 ### 3. **Installation Prompt**
 - Custom install button appears on supported browsers
 - Users can add the app to their home screen
 - Works on mobile and desktop
 
-### 4. **Mobile Optimization**
+### 4. **Network Status Monitoring**
+- Real-time internet connection detection
+- Offline banner warning users when connection is lost
+- Prevents form submissions when offline to ensure data integrity
+
+### 5. **Mobile Optimization**
 - Apple-specific meta tags for iOS
 - Proper viewport configuration
 - Touch-friendly interface
@@ -56,17 +62,18 @@ Your Brown's Fleet Tracker app is now a Progressive Web App (PWA)! Here's what h
 ## 🎯 Benefits for Your Fleet Tracker
 
 1. **Native App Experience** - Users get an app-like experience without app stores
-2. **Offline Access** - App works even without internet connection
+2. **Network-Dependent Operations** - Ensures all submissions are properly saved to server
 3. **Home Screen Access** - Quick access from phone home screen
 4. **Auto-Updates** - Updates automatically when you deploy changes
-5. **No App Store Approval** - Deploy instantly without waiting for approval
+5. **Data Integrity** - Prevents data loss by requiring internet connection for submissions
+6. **No App Store Approval** - Deploy instantly without waiting for approval
 
 ## 🔄 Next Steps
 
 1. **Test the PWA**: Visit your app on mobile and try installing it
 2. **Customize Icons**: Replace the generated SVG icons with your actual logo
 3. **Add Screenshots**: Add actual screenshots to the manifest for better app store listings
-4. **Test Offline**: Try using the app without internet to test offline functionality
+4. **Test Network Dependencies**: Try submitting forms offline to verify network requirement
 
 ## 🐛 Troubleshooting
 

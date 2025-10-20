@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { SessionProvider } from '@/lib/session'
 import ConditionalHeader from '@/components/ConditionalHeader'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import NetworkStatus from '@/components/NetworkStatus'
 
 export const metadata: Metadata = {
   title: "Brown's Fleet Tracker",
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen gradient-bg text-white">
+        <NetworkStatus />
         <ErrorBoundary>
           <SessionProvider>
             <ConditionalHeader />
