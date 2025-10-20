@@ -26,6 +26,9 @@ export default function PWAInstallPrompt() {
     const checkInstalled = () => {
       if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsInstalled(true);
+        setShowInstallPrompt(false);
+        // Mark as dismissed since app is already installed
+        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
       }
     };
 
@@ -41,6 +44,8 @@ export default function PWAInstallPrompt() {
       setIsInstalled(true);
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
+      // Also store that they've installed the app
+      sessionStorage.setItem('pwa-prompt-dismissed', 'true');
     };
 
     checkInstalled();
@@ -73,17 +78,27 @@ export default function PWAInstallPrompt() {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        // User accepted - hide the prompt immediately
+        setShowInstallPrompt(false);
+        setDeferredPrompt(null);
+        // Store that they've seen and interacted with the prompt
+        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+      } else {
+        // User dismissed - hide the prompt and remember for this session
+        setShowInstallPrompt(false);
+        setDeferredPrompt(null);
+        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+      }
+    } catch (error) {
+      // If there's an error, still hide the prompt
+      setShowInstallPrompt(false);
+      setDeferredPrompt(null);
     }
-    
-    setDeferredPrompt(null);
-    setShowInstallPrompt(false);
   };
 
   const handleDismiss = () => {
