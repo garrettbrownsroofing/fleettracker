@@ -2,7 +2,7 @@
 
 import { useSession } from '@/lib/session'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { apiGet } from '@/lib/storage'
 import type { Vehicle, Driver, Assignment, MaintenanceRecord, WeeklyCheck } from '@/types/fleet'
@@ -104,18 +104,18 @@ export default function Home() {
     return 'Good Evening'
   }
 
-  // Memoize date calculations to prevent infinite re-renders
-  const thirtyDaysAgo = useMemo(() => {
+  // Date calculations - simplified without useMemo
+  const getThirtyDaysAgo = () => {
     const date = new Date()
     date.setDate(date.getDate() - 30)
     return date
-  }, [])
+  }
   
-  const sevenDaysAgo = useMemo(() => {
+  const getSevenDaysAgo = () => {
     const date = new Date()
     date.setDate(date.getDate() - 7)
     return date
-  }, [])
+  }
 
   // Calculate real stats based on user role - simplified without useMemo
   const getDashboardStats = () => {
@@ -161,12 +161,12 @@ export default function Home() {
     
     // Count recent maintenance (last 30 days)
     const recentMaintenance = visibleMaintenance.filter(maint => 
-      new Date(maint.date) >= thirtyDaysAgo
+      new Date(maint.date) >= getThirtyDaysAgo()
     ).length
     
     // Count recent weekly checks (last 7 days)
     const recentWeeklyChecks = visibleWeeklyChecks.filter(check => 
-      new Date(check.date) >= sevenDaysAgo
+      new Date(check.date) >= getSevenDaysAgo()
     ).length
 
     return [

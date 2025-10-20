@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { readJson, writeJson, apiGet } from '@/lib/storage'
 
@@ -151,10 +151,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoggingOut, router])
 
-  const value = useMemo<SessionState>(
-    () => ({ role, user, isAuthenticated, login, logout }),
-    [role, user, isAuthenticated]
-  )
+  const value = { role, user, isAuthenticated, login, logout }
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
