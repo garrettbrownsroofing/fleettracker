@@ -46,7 +46,7 @@ async function compressImage(file: File, maxWidth: number = 800, quality: number
       ctx?.drawImage(img, 0, 0, width, height)
       const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
       
-      console.log(`📸 Image compressed: ${file.name} - Original: ${file.size} bytes, Compressed: ${compressedDataUrl.length} bytes`)
+      // Image compressed successfully
       resolve(compressedDataUrl)
     }
     
@@ -76,9 +76,7 @@ function MaintenancePageContent() {
   
   // Wait for session to be hydrated before redirecting
   useEffect(() => {
-    console.log('Maintenance page - Authentication state:', { isAuthenticated, role, user })
     if (isAuthenticated === false) {
-      console.log('User not authenticated, redirecting to login')
       router.replace('/login')
     }
   }, [isAuthenticated, role, user, router])
@@ -211,15 +209,15 @@ function MaintenancePageContent() {
     
     // Check total data size before submitting
     const totalSize = JSON.stringify(rec).length
-    console.log('🔍 Total maintenance record size:', totalSize, 'bytes')
+    // Checking record size
     
     if (totalSize > 900000) { // 900KB limit (leaving some buffer under 1MB)
-      console.warn('⚠️ Maintenance record size is large:', totalSize, 'bytes')
+      // Record size is large
       const sizeBreakdown = {
         receiptImages: receiptImages.reduce((sum, img) => sum + img.length, 0),
         otherData: totalSize - receiptImages.reduce((sum, img) => sum + img.length, 0)
       }
-      console.log('📊 Size breakdown:', sizeBreakdown)
+      // Size breakdown calculated
       
       // If still too large, show warning
       if (totalSize > 1000000) {
@@ -279,15 +277,15 @@ function MaintenancePageContent() {
     
     // Check total data size before submitting
     const totalSize = JSON.stringify(rec).length
-    console.log('🔍 Total maintenance record size:', totalSize, 'bytes')
+    // Checking record size
     
     if (totalSize > 900000) { // 900KB limit (leaving some buffer under 1MB)
-      console.warn('⚠️ Maintenance record size is large:', totalSize, 'bytes')
+      // Record size is large
       const sizeBreakdown = {
         receiptImages: receiptImages.reduce((sum, img) => sum + img.length, 0),
         otherData: totalSize - receiptImages.reduce((sum, img) => sum + img.length, 0)
       }
-      console.log('📊 Size breakdown:', sizeBreakdown)
+      // Size breakdown calculated
       
       // If still too large, show warning
       if (totalSize > 1000000) {

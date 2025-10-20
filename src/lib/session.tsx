@@ -36,15 +36,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   // Load session data after hydration
   useEffect(() => {
     try {
-      console.log('Loading session data...')
-      console.log('Available localStorage keys:', Object.keys(localStorage))
       const savedRole = readJson<Role>(`${STORAGE_KEY}:role`, 'user')
       const savedUser = readJson<SessionUser | null>(`${STORAGE_KEY}:user`, null)
-      console.log('Loaded session data:', { savedRole, savedUser })
-      console.log('Raw localStorage values:', {
-        role: localStorage.getItem(`${STORAGE_KEY}:role`),
-        user: localStorage.getItem(`${STORAGE_KEY}:user`)
-      })
       setRole(savedRole)
       setUser(savedUser)
     } catch (error) {
@@ -53,7 +46,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setRole('user')
       setUser(null)
     } finally {
-      console.log('Session hydration complete')
       setIsHydrated(true)
     }
   }, [])
