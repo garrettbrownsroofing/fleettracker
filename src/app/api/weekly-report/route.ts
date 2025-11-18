@@ -454,11 +454,15 @@ function generateTextReport(
 export async function GET(request: NextRequest) {
   try {
     // Validate webhook URL is set
-    const webhookUrl = process.env.ZAPIER_WEBHOOK_URL
+    const webhookUrl = process.env.ZAPIER_WEBHOOK_URL?.trim()
     if (!webhookUrl) {
       console.error('❌ ZAPIER_WEBHOOK_URL is not set')
+      console.error('Available env vars:', Object.keys(process.env).filter(key => key.includes('ZAPIER') || key.includes('WEBHOOK')).join(', ') || 'none')
       return NextResponse.json(
-        { error: 'ZAPIER_WEBHOOK_URL environment variable is not configured' },
+        { 
+          error: 'ZAPIER_WEBHOOK_URL environment variable is not configured',
+          hint: 'Please ensure ZAPIER_WEBHOOK_URL is set in your Vercel project settings for the Production environment'
+        },
         { status: 500 }
       )
     }
