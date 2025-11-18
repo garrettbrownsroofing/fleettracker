@@ -1,24 +1,38 @@
+# Dependencies
 node_modules/
+
+# Next.js
 .next/
 out/
 .next/cache/
+
+# Vercel
 .vercel/
-.DS_Store
-.vscode/
-.idea/
+
+# Environment variables
 .env
 .env.local
+.env.*
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-node_modules
-.next
-.env
-.env.local
-.env.*
+
+# OS
 .DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
 coverage
 playwright-report
+
+# Database
 .prisma
+
+# Service account keys (should be in environment variables, not committed)
 service-account-key.json
