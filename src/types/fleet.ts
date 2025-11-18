@@ -18,6 +18,7 @@ export type Driver = {
   email?: string
   notes?: string
   assignedVehicleId?: string // For form state when adding driver with vehicle assignment
+  pwaPromptSeen?: boolean // Track if user has seen the PWA install prompt
 }
 
 export type Assignment = {

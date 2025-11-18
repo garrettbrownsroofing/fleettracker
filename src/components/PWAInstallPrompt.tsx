@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from '@/lib/session';
+import { apiGet, apiPost } from '@/lib/storage';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -11,14 +13,106 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+const PROMPT_SEEN_KEY = 'pwa-prompt-seen'; // For admin user only (fallback)
+
 export default function PWAInstallPrompt() {
+  const { isAuthenticated, user } = useSession();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [userAgent, setUserAgent] = useState('');
   const [showManualInstructions, setShowManualInstructions] = useState(false);
+  const [hasSeenPrompt, setHasSeenPrompt] = useState<boolean | null>(null); // null = loading, true/false = loaded
+  const [isCheckingPrompt, setIsCheckingPrompt] = useState(true);
+
+  // Check if user has seen the prompt (server-side for drivers, localStorage for admin)
+  const checkPromptStatus = useCallback(async () => {
+    if (!user) {
+      setIsCheckingPrompt(false);
+      return;
+    }
+
+    // Admin user doesn't have a driver record, use localStorage as fallback
+    if (user.id === 'admin') {
+      const seen = localStorage.getItem(PROMPT_SEEN_KEY) === 'true';
+      setHasSeenPrompt(seen);
+      setIsCheckingPrompt(false);
+      return;
+    }
+
+    try {
+      const response = await apiGet<{ seen: boolean }>(`/api/pwa-prompt-seen?userId=${user.id}`);
+      setHasSeenPrompt(response.seen);
+    } catch (error) {
+      console.error('Error checking PWA prompt status:', error);
+      // On error, default to showing the prompt (better UX)
+      setHasSeenPrompt(false);
+    } finally {
+      setIsCheckingPrompt(false);
+    }
+  }, [user]);
+
+  // Mark prompt as seen (server-side for drivers, localStorage for admin)
+  const markPromptAsSeen = useCallback(async () => {
+    if (!user) return;
+
+    // Admin user doesn't have a driver record, use localStorage as fallback
+    if (user.id === 'admin') {
+      localStorage.setItem(PROMPT_SEEN_KEY, 'true');
+      setHasSeenPrompt(true);
+      return;
+    }
+
+    try {
+      await apiPost('/api/pwa-prompt-seen', { userId: user.id });
+      setHasSeenPrompt(true);
+    } catch (error) {
+      console.error('Error marking PWA prompt as seen:', error);
+      // Still mark as seen locally to prevent repeated prompts
+      setHasSeenPrompt(true);
+    }
+  }, [user]);
+
+  const handleInstallClick = useCallback(async () => {
+    if (!deferredPrompt) return;
+
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        // User accepted - hide the prompt immediately
+        setShowInstallPrompt(false);
+        setDeferredPrompt(null);
+        // Mark as seen permanently (won't show again)
+        await markPromptAsSeen();
+      } else {
+        // User dismissed - hide the prompt and remember permanently
+        setShowInstallPrompt(false);
+        setDeferredPrompt(null);
+        await markPromptAsSeen();
+      }
+    } catch (error) {
+      // If there's an error, still hide the prompt
+      setShowInstallPrompt(false);
+      setDeferredPrompt(null);
+      await markPromptAsSeen();
+    }
+  }, [deferredPrompt, markPromptAsSeen]);
+
+  // Check prompt status when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated === true && user) {
+      checkPromptStatus();
+    }
+  }, [isAuthenticated, user, checkPromptStatus]);
 
   useEffect(() => {
+    // Only show prompt if user is authenticated and we've checked the status
+    if (isAuthenticated !== true || isCheckingPrompt || hasSeenPrompt === true) {
+      return;
+    }
+
     // Set user agent for device detection
     setUserAgent(navigator.userAgent);
     
@@ -27,8 +121,8 @@ export default function PWAInstallPrompt() {
       if (window.matchMedia('(display-mode: standalone)').matches) {
         setIsInstalled(true);
         setShowInstallPrompt(false);
-        // Mark as dismissed since app is already installed
-        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+        // Mark as seen since app is already installed
+        markPromptAsSeen();
       }
     };
 
@@ -36,7 +130,10 @@ export default function PWAInstallPrompt() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowInstallPrompt(true);
+      // Only show if user hasn't seen it before
+      if (hasSeenPrompt === false) {
+        setShowInstallPrompt(true);
+      }
     };
 
     // Listen for the appinstalled event
@@ -44,8 +141,8 @@ export default function PWAInstallPrompt() {
       setIsInstalled(true);
       setShowInstallPrompt(false);
       setDeferredPrompt(null);
-      // Also store that they've installed the app
-      sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+      // Mark as seen since they've installed the app
+      markPromptAsSeen();
     };
 
     checkInstalled();
@@ -56,9 +153,9 @@ export default function PWAInstallPrompt() {
     const urlParams = new URLSearchParams(window.location.search);
     const autoInstall = urlParams.get('install') === 'true';
     
-    // Auto-show install prompt after a short delay if not already shown
+    // Auto-show install prompt after a short delay if not already shown (first login only)
     const timer = setTimeout(() => {
-      if (!isInstalled && !sessionStorage.getItem('pwa-prompt-dismissed')) {
+      if (!isInstalled && hasSeenPrompt === false) {
         setShowInstallPrompt(true);
         
         // If auto-install is triggered and we have the browser prompt, show it immediately
@@ -73,38 +170,12 @@ export default function PWAInstallPrompt() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [isInstalled]);
+  }, [isInstalled, isAuthenticated, hasSeenPrompt, isCheckingPrompt, deferredPrompt, handleInstallClick, markPromptAsSeen]);
 
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        // User accepted - hide the prompt immediately
-        setShowInstallPrompt(false);
-        setDeferredPrompt(null);
-        // Store that they've seen and interacted with the prompt
-        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
-      } else {
-        // User dismissed - hide the prompt and remember for this session
-        setShowInstallPrompt(false);
-        setDeferredPrompt(null);
-        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
-      }
-    } catch (error) {
-      // If there's an error, still hide the prompt
-      setShowInstallPrompt(false);
-      setDeferredPrompt(null);
-    }
-  };
-
-  const handleDismiss = () => {
+  const handleDismiss = async () => {
     setShowInstallPrompt(false);
-    // Hide for this session
-    sessionStorage.setItem('pwa-prompt-dismissed', 'true');
+    // Mark as seen permanently (won't show again on future logins)
+    await markPromptAsSeen();
   };
 
   const handleShowInstructions = () => {
@@ -116,8 +187,19 @@ export default function PWAInstallPrompt() {
   const isAndroid = /Android/.test(userAgent);
   const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
 
-  // Don't show if already installed or dismissed this session
-  if (isInstalled || !showInstallPrompt || sessionStorage.getItem('pwa-prompt-dismissed')) {
+  // Don't show if:
+  // - Not authenticated
+  // - Still checking prompt status
+  // - User has already seen it (server-side tracked)
+  // - Already installed
+  // - Prompt not set to show
+  if (
+    isAuthenticated !== true ||
+    isCheckingPrompt ||
+    hasSeenPrompt === true ||
+    isInstalled ||
+    !showInstallPrompt
+  ) {
     return null;
   }
 
